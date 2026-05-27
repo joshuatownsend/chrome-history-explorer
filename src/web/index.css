@@ -1,0 +1,24 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  @apply bg-neutral-950 text-neutral-200 font-sans antialiased;
+}
+
+/* thin scrollbars for dense tables */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: theme("colors.neutral.700") transparent;
+}
