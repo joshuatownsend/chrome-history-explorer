@@ -1,20 +1,29 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, type DomainRow, type Filters, type UrlRow } from "../api.ts";
+import { api, type DomainRow, type Filters, type TreeNode, type UrlRow } from "../api.ts";
 import { fmtNum, fmtRelative } from "../lib/format.ts";
+import { TreeNodeView } from "./TreeNodeView.tsx";
 
 type SortKey = "visits" | "urls" | "last_visited" | "domain";
+
+type Expansion =
+  | "loading"
+  | { kind: "flat"; rows: UrlRow[] }
+  | { kind: "tree"; nodes: TreeNode[] };
 
 interface Props {
   filters: Filters;
   onPickDomain: (domain: string) => void;
 }
 
+const TREE_PREF_KEY = "che.domainTreeView";
+
 export function DomainView({ filters, onPickDomain }: Props) {
   const [rows, setRows] = useState<DomainRow[]>([]);
   const [total, setTotal] = useState(0);
   const [sort, setSort] = useState<SortKey>("visits");
   const [dir, setDir] = useState<"asc" | "desc">("desc");
-  const [expanded, setExpanded] = useState<Record<string, UrlRow[] | "loading">>({});
+  const [treeMode, setTreeMode] = useState(() => localStorage.getItem(TREE_PREF_KEY) === "1");
+  const [expanded, setExpanded] = useState<Record<string, Expansion>>({});
 
   const load = useCallback(async () => {
     const page = await api.domains(filters, sort, dir, 500, 0);
@@ -27,6 +36,12 @@ export function DomainView({ filters, onPickDomain }: Props) {
     void load();
   }, [load]);
 
+  // Switching modes collapses everything (mixed flat/tree expansions would be confusing).
+  useEffect(() => {
+    localStorage.setItem(TREE_PREF_KEY, treeMode ? "1" : "0");
+    setExpanded({});
+  }, [treeMode]);
+
   const toggle = async (domain: string | null) => {
     if (!domain) return;
     if (expanded[domain]) {
@@ -38,8 +53,13 @@ export function DomainView({ filters, onPickDomain }: Props) {
       return;
     }
     setExpanded((e) => ({ ...e, [domain]: "loading" }));
-    const page = await api.urls({ ...filters, domain }, "visit_count", "desc", 100, 0);
-    setExpanded((e) => ({ ...e, [domain]: page.rows }));
+    if (treeMode) {
+      const t = await api.tree(domain);
+      setExpanded((e) => ({ ...e, [domain]: { kind: "tree", nodes: t.children } }));
+    } else {
+      const page = await api.urls({ ...filters, domain }, "visit_count", "desc", 100, 0);
+      setExpanded((e) => ({ ...e, [domain]: { kind: "flat", rows: page.rows } }));
+    }
   };
 
   const header = (key: SortKey, label: string, cls: string) => (
@@ -60,7 +80,13 @@ export function DomainView({ filters, onPickDomain }: Props) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="px-4 py-1.5 text-xs text-neutral-500">{fmtNum(total)} domains</div>
+      <div className="flex items-center px-4 py-1.5 text-xs text-neutral-500">
+        <span>{fmtNum(total)} domains</span>
+        <label className="ml-auto flex items-center gap-1.5 text-neutral-400">
+          <input type="checkbox" checked={treeMode} onChange={(e) => setTreeMode(e.target.checked)} />
+          Tree view (group pages by path)
+        </label>
+      </div>
       <div className="flex gap-3 border-b border-neutral-800 px-4 py-2 text-xs font-medium text-neutral-400">
         {header("domain", "Domain", "flex-1")}
         {header("urls", "URLs", "w-20 shrink-0 text-right")}
@@ -88,29 +114,34 @@ export function DomainView({ filters, onPickDomain }: Props) {
                 <div className="w-20 shrink-0 text-right text-sm tabular-nums text-neutral-400">
                   {fmtNum(d.url_count)}
                 </div>
-                <div className="w-24 shrink-0 text-right text-sm tabular-nums">
-                  {fmtNum(d.visits)}
-                </div>
+                <div className="w-24 shrink-0 text-right text-sm tabular-nums">{fmtNum(d.visits)}</div>
                 <div className="w-28 shrink-0 text-right text-xs text-neutral-400">
                   {fmtRelative(d.last_visited)}
                 </div>
               </div>
 
-              {exp === "loading" && (
-                <div className="px-10 py-2 text-xs text-neutral-500">loading…</div>
+              {exp === "loading" && <div className="px-10 py-2 text-xs text-neutral-500">loading…</div>}
+
+              {typeof exp === "object" && exp.kind === "tree" && (
+                <div className="bg-neutral-950/60 py-1">
+                  {exp.nodes.length === 0 && (
+                    <div className="px-10 py-2 text-xs text-neutral-600">no pages</div>
+                  )}
+                  {exp.nodes.map((n, i) => (
+                    <TreeNodeView key={n.label + i} node={n} depth={0} />
+                  ))}
+                </div>
               )}
-              {Array.isArray(exp) && (
+
+              {typeof exp === "object" && exp.kind === "flat" && (
                 <div className="bg-neutral-950/60">
                   <div className="flex items-center justify-between px-10 py-1 text-xs text-neutral-600">
-                    <span>top {exp.length} URLs by visits</span>
-                    <button
-                      className="text-blue-400 hover:text-blue-300"
-                      onClick={() => onPickDomain(key)}
-                    >
+                    <span>top {exp.rows.length} URLs by visits</span>
+                    <button className="text-blue-400 hover:text-blue-300" onClick={() => onPickDomain(key)}>
                       view all in list →
                     </button>
                   </div>
-                  {exp.map((u) => (
+                  {exp.rows.map((u) => (
                     <a
                       key={u.id}
                       href={u.url}

@@ -164,6 +164,9 @@ export const api = {
 
   stats: () => getJson<Stats>(`/stats`),
 
+  tree: (domain: string) =>
+    getJson<{ domain: string; children: TreeNode[] }>(`/tree?domain=${encodeURIComponent(domain)}`),
+
   aiConfig: () =>
     getJson<{
       providers: { id: string; name: string; configured: boolean; canSummarize: boolean; canEmbed: boolean }[];
@@ -202,6 +205,22 @@ export const api = {
         }>,
     ),
 };
+
+export interface TreeNode {
+  label: string;
+  visits: number; // aggregate (own + descendants)
+  ownVisits: number;
+  lastVisited: number | null;
+  isPage: boolean;
+  urlId?: number;
+  url?: string;
+  title?: string | null;
+  isPrivate?: number;
+  liveness?: string | null;
+  livenessJson?: string | null;
+  pageCount: number;
+  children: TreeNode[];
+}
 
 export interface Stats {
   totals: {
