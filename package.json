@@ -9,7 +9,8 @@
     "dev:web": "vite",
     "dev": "concurrently -k -n server,web \"bun run src/server/index.ts\" \"vite\"",
     "build": "vite build",
-    "start": "bun run src/server/index.ts"
+    "start": "bun run src/server/index.ts",
+    "test": "bun test"
   },
   "dependencies": {
     "hono": "^4.6.14",

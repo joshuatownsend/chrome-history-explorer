@@ -71,6 +71,7 @@ export interface Filters {
   q?: string;
   domain?: string;
   device?: string;
+  source?: string;
   from?: number;
   to?: number;
   privacy?: "all" | "public" | "private";
@@ -213,7 +214,41 @@ export const api = {
           note?: string;
         }>,
     ),
+
+  sources: () => getJson<{ rows: SourceRow[] }>(`/sources`),
+
+  detectProfiles: () => getJson<{ profiles: DetectedProfile[] }>(`/import/detect`),
+
+  runImport: (labels: string[]) =>
+    fetch(`/api/import/run`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ labels }),
+    }).then(
+      (r) =>
+        r.json() as Promise<{
+          totalInserted: number;
+          results: { label: string; inserted?: number; error?: string }[];
+        }>,
+    ),
 };
+
+export interface SourceRow {
+  source: string;
+  visits: number;
+  urls: number;
+  first_visit: number | null;
+  last_visit: number | null;
+}
+
+export interface DetectedProfile {
+  browser: string;
+  kind: string;
+  label: string;
+  path: string;
+  visitCount: number | null;
+  lastVisitMs: number | null;
+}
 
 export interface PrivacyRules {
   privatePatterns: string[];

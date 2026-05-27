@@ -1,10 +1,11 @@
 import { useEffect, useState } from "react";
-import type { DeviceRow, Filters } from "../api.ts";
+import type { DeviceRow, Filters, SourceRow } from "../api.ts";
 import { dateInputToMs } from "../lib/format.ts";
 
 interface Props {
   filters: Filters;
   devices: DeviceRow[];
+  sources: SourceRow[];
   onChange: (f: Filters) => void;
   searchMode?: boolean; // true in the full-text Search view
 }
@@ -15,7 +16,7 @@ const PRIVACY: { value: NonNullable<Filters["privacy"]>; label: string }[] = [
   { value: "private", label: "Private/LAN" },
 ];
 
-export function FiltersBar({ filters, devices, onChange, searchMode }: Props) {
+export function FiltersBar({ filters, devices, sources, onChange, searchMode }: Props) {
   // Debounce the free-text box so we don't refetch on every keystroke.
   const [text, setText] = useState(filters.q ?? "");
   useEffect(() => {
@@ -56,6 +57,24 @@ export function FiltersBar({ filters, devices, onChange, searchMode }: Props) {
           ))}
         </select>
       </label>
+
+      {sources.length > 1 && (
+        <label className="flex flex-col gap-1">
+          <span className="text-xs text-neutral-500">Source</span>
+          <select
+            value={filters.source ?? ""}
+            onChange={(e) => onChange({ ...filters, source: e.target.value || undefined })}
+            className="rounded bg-neutral-800 px-2 py-1 ring-1 ring-neutral-700"
+          >
+            <option value="">All sources</option>
+            {sources.map((s) => (
+              <option key={s.source} value={s.source}>
+                {s.source} ({s.visits.toLocaleString()})
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
 
       <label className="flex flex-col gap-1">
         <span className="text-xs text-neutral-500">Visibility</span>

@@ -34,19 +34,23 @@ CREATE INDEX IF NOT EXISTS idx_urls_visit_count   ON urls(visit_count DESC);
 CREATE INDEX IF NOT EXISTS idx_urls_private       ON urls(is_private);
 -- idx_urls_hidden is created in db.ts migrate() so it works on pre-existing DBs too.
 
--- The visit event log (~82k rows).
+-- The visit event log.
 CREATE TABLE IF NOT EXISTS visits (
-  id        INTEGER PRIMARY KEY,
-  url_id    INTEGER NOT NULL REFERENCES urls(id),
-  time_ms   INTEGER NOT NULL,     -- epoch ms (UTC)
-  client_id TEXT REFERENCES devices(client_id)
+  id         INTEGER PRIMARY KEY,
+  url_id     INTEGER NOT NULL REFERENCES urls(id),
+  time_ms    INTEGER NOT NULL,    -- epoch ms (UTC)
+  client_id  TEXT REFERENCES devices(client_id), -- physical device (Takeout sync hash)
+  source     TEXT NOT NULL DEFAULT 'takeout',     -- ingestion provenance (browser/export)
+  transition TEXT                 -- normalized: link|typed|reload|form|bookmark|redirect|generated|other
 );
 
 CREATE INDEX IF NOT EXISTS idx_visits_url_id  ON visits(url_id);
 CREATE INDEX IF NOT EXISTS idx_visits_time    ON visits(time_ms DESC);
 CREATE INDEX IF NOT EXISTS idx_visits_client  ON visits(client_id);
--- Dedupe guard so re-ingest is idempotent.
-CREATE UNIQUE INDEX IF NOT EXISTS uq_visits_url_time_client ON visits(url_id, time_ms, client_id);
+-- idx_visits_source is created in db.ts migrate() (works on pre-existing DBs too).
+-- Dedupe guard: one row per (url, moment), regardless of source, so importing
+-- the same visit from Takeout AND a local browser does not double-count.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_visits_url_time ON visits(url_id, time_ms);
 
 -- Full-text search over the URL entity. Contentless table kept in sync by ingest.
 CREATE VIRTUAL TABLE IF NOT EXISTS urls_fts USING fts5(

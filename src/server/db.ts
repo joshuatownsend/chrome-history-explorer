@@ -22,11 +22,31 @@ export function getDb(): Database {
 
 /** Idempotent column adds for databases created before a column existed. */
 function migrate(db: Database): void {
-  const cols = db.query("PRAGMA table_info(urls)").all() as { name: string }[];
-  if (!cols.some((c) => c.name === "is_hidden")) {
+  const urlCols = db.query("PRAGMA table_info(urls)").all() as { name: string }[];
+  if (!urlCols.some((c) => c.name === "is_hidden")) {
     db.exec("ALTER TABLE urls ADD COLUMN is_hidden INTEGER NOT NULL DEFAULT 0");
   }
   db.exec("CREATE INDEX IF NOT EXISTS idx_urls_hidden ON urls(is_hidden)");
+
+  // Multi-source: visits gain provenance (source) + real transition type, and the
+  // dedup key drops client_id so the same moment from two sources collapses.
+  const visitCols = db.query("PRAGMA table_info(visits)").all() as { name: string }[];
+  if (visitCols.length && !visitCols.some((c) => c.name === "source")) {
+    db.exec("ALTER TABLE visits ADD COLUMN source TEXT NOT NULL DEFAULT 'takeout'");
+  }
+  if (visitCols.length && !visitCols.some((c) => c.name === "transition")) {
+    db.exec("ALTER TABLE visits ADD COLUMN transition TEXT");
+  }
+  // Replace the old (url_id,time_ms,client_id) uniqueness with (url_id,time_ms).
+  const idx = db.query("PRAGMA index_list(visits)").all() as { name: string }[];
+  if (idx.some((i) => i.name === "uq_visits_url_time_client")) {
+    db.exec(
+      "DELETE FROM visits WHERE id NOT IN (SELECT MIN(id) FROM visits GROUP BY url_id, time_ms)",
+    );
+    db.exec("DROP INDEX uq_visits_url_time_client");
+  }
+  db.exec("CREATE UNIQUE INDEX IF NOT EXISTS uq_visits_url_time ON visits(url_id, time_ms)");
+  db.exec("CREATE INDEX IF NOT EXISTS idx_visits_source ON visits(source)");
 }
 
 export const dbPath = DB_PATH;

@@ -1,9 +1,13 @@
 # Chrome History Explorer
 
-A **local-first** web app for exploring a Google Takeout export of your Chrome history.
-Browse, sort, filter, and full-text search tens of thousands of visits; group by parent
-domain; reopen saved tab sessions; check which links are still alive (vs dead/blocked);
-and — optionally — summarize pages and search semantically with AI.
+A **local-first** web app for exploring your browser history — from a Google Takeout export
+**or directly from local browser profiles** (Chrome, Edge, Brave, Vivaldi, Opera, Firefox,
+and Safari). Browse, sort, filter, and full-text search tens of thousands of visits; group
+by parent domain; reopen saved tab sessions; check which links are still alive (vs
+dead/blocked); and — optionally — summarize pages and search semantically with AI.
+
+Multiple sources merge into one database and dedupe by URL + time, so you can combine a
+Takeout export with several local browsers without double-counting.
 
 Your data stays on your machine. Private/LAN hosts (`localhost`, `192.168.x`, `*.local`, …)
 are **never** sent to liveness checks or AI providers — and you can add your own hosts to
@@ -11,6 +15,9 @@ treat as private or hide entirely (see [Privacy & ignore rules](#privacy--ignore
 
 ## Features
 
+- **Multi-source import** — Google Takeout JSON plus local browser databases (all
+  Chromium-family browsers, Firefox, and Safari), auto-detected per profile. Filter and
+  attribute visits by source; real page-transition types are captured from local browsers.
 - **Browse / sort / filter** a virtualized table of every unique URL, with visit counts,
   last-visit times, and per-device badges.
 - **Group by domain** (true eTLD+1, so `mail.google.com` rolls up under `google.com`),
@@ -33,29 +40,47 @@ treat as private or hide entirely (see [Privacy & ignore rules](#privacy--ignore
 ## Prerequisites
 
 - [Bun](https://bun.com) ≥ 1.3 (the app uses Bun's built-in SQLite — no native build step).
-- A `History.json` from Google Takeout (see below).
-
-### Getting your `History.json`
-
-1. Go to [Google Takeout](https://takeout.google.com).
-2. Deselect everything, then select **Chrome**.
-3. Export and download the archive; inside you'll find `History.json`.
-4. Place it in the project root (or pass its path to the ingest step).
-
-> `History.json` and other `*history*.json` files are gitignored — your data is never committed.
+- At least one history source: a Google Takeout export and/or a locally installed browser.
 
 ## Setup
 
 ```bash
 bun install
-
-# Build the SQLite database from your export (one-time, ~8s).
-# Looks for ./History.json by default, or pass a path:
-bun run ingest               # or: bun run ingest /path/to/History.json
+bun run ingest    # builds data/history.db (gitignored) from ./History.json if present
 ```
 
-This creates `data/history.db` (gitignored). Re-running `ingest` is idempotent and
-safe — useful for importing a fresh Takeout later.
+`ingest` is idempotent — re-running, or loading another source, merges and dedupes by
+URL + time rather than duplicating. `data/history.db` and any `*history*.json` exports are
+gitignored, so your data is never committed.
+
+## Importing history
+
+You can load from a Takeout export, from local browser profiles, or both — they merge.
+
+### Google Takeout
+
+1. Go to [Google Takeout](https://takeout.google.com), deselect everything, select **Chrome**.
+2. Export, download, and extract — you'll find `History.json`.
+3. `bun run ingest` (looks for `./History.json`) or `bun run ingest /path/to/History.json`.
+
+Takeout is the only source that also includes saved **tab sessions**.
+
+### Local browsers (Chrome, Edge, Brave, Vivaldi, Opera, Firefox, Safari)
+
+The app reads each browser's history database directly. It copies the file first, so it's
+safe to leave the browser running, and it captures real page-transition types.
+
+```bash
+bun run ingest --list                    # detect installed profiles (with visit counts)
+bun run ingest --profile chrome:Default  # import a detected profile by label
+bun run ingest --source firefox --path "/path/to/places.sqlite"   # explicit path
+```
+
+Or use the **Import** tab in the app: it lists detected profiles with visit counts and
+last-visit dates; tick the ones you want and click import.
+
+> You typically have many profiles (work/personal/etc.) — selection is always explicit;
+> nothing is imported automatically.
 
 ## Running
 
@@ -131,22 +156,39 @@ Nothing beyond `localhost`/LAN is hardcoded — all other privacy is configured 
 src/
   server/
     index.ts            Hono app + Bun.serve (serves API and the built SPA)
-    ingest.ts           ETL: History.json -> SQLite (idempotent)
+    ingest.ts           CLI: detect/select a source, load via the loader
     schema.sql          tables, indexes, FTS5
     db.ts               connection + migration runner
-    lib/                domain/privacy, user rules, job queue, liveness, page extraction
+    lib/
+      load.ts           source-agnostic loader (NormalizedVisit -> rows) + finalize
+      sources/          adapters: takeout, chromium, firefox, safari + detect + registry
+      …                 domain/privacy, user rules, job queue, liveness, page extraction
     ai/                 pluggable provider abstraction (anthropic, openai)
     routes/             urls, domains, devices, search, sessions, open, enrich,
-                        stats, ai, tree, settings
+                        stats, ai, tree, settings, import (+ sources)
   web/
-    App.tsx             view shell (Dashboard / Search / By domain / All URLs / Sessions / Settings)
+    App.tsx             view shell (Dashboard / Search / By domain / All URLs / Sessions / Import / Settings)
     api.ts              typed fetch client
-    components/         table, domain view, tree, sessions, dashboard, settings, filters, badges
+    components/         table, domain/tree views, sessions, dashboard, import, settings, filters, badges
+test/
+  adapters.test.ts      fixture-based epoch/transition tests per browser adapter (bun test)
 ```
+
+Adding a browser source is one file: implement `HistorySource` in `src/server/lib/sources/`,
+add it to the registry and (optionally) profile detection.
 
 ## Notes & limitations
 
-- Takeout exports don't preserve page-transition types, and contain no bookmarks or
-  downloads, so those aren't available.
+- **Takeout** exports don't preserve page-transition types and contain no bookmarks or
+  downloads. Local-browser imports *do* capture real transition types.
+- **Sessions** (saved tab windows) come only from Takeout; local sources don't expose them.
+- **Safari** support is implemented and fixture-tested but unverified against a live profile
+  (Safari only exists on macOS) — a macOS contributor's confirmation is welcome.
 - The liveness HTTP-status classification lives in `src/server/lib/liveness.ts`
   (`classifyStatus`) — tweak the buckets there if you'd categorize differently.
+
+## Tests
+
+```bash
+bun test    # fixture-based adapter epoch/transition tests
+```

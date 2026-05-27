@@ -3,6 +3,7 @@
 export interface UrlFilters {
   domain?: string;
   device?: string; // client_id
+  source?: string; // ingestion provenance (browser/export)
   from?: number; // epoch ms
   to?: number; // epoch ms
   q?: string; // simple substring match on title/url (FTS handled separately)
@@ -15,6 +16,7 @@ export function parseFilters(q: URLSearchParams): UrlFilters {
   return {
     domain: q.get("domain") || undefined,
     device: q.get("device") || undefined,
+    source: q.get("source") || undefined,
     from: num(q.get("from")),
     to: num(q.get("to")),
     q: q.get("q") || undefined,
@@ -48,6 +50,10 @@ export function buildWhere(f: UrlFilters): { sql: string; params: Record<string,
   if (f.device) {
     visitClauses.push("v.client_id = $device");
     params.$device = f.device;
+  }
+  if (f.source) {
+    visitClauses.push("v.source = $source");
+    params.$source = f.source;
   }
   if (f.from != null) {
     visitClauses.push("v.time_ms >= $from");

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { api, type DeviceRow, type Filters } from "./api.ts";
+import { api, type DeviceRow, type Filters, type SourceRow } from "./api.ts";
 import { FiltersBar } from "./components/Filters.tsx";
 import { HistoryTable } from "./components/HistoryTable.tsx";
 import { DomainView } from "./components/DomainView.tsx";
@@ -8,13 +8,15 @@ import { SessionsView } from "./components/SessionsView.tsx";
 import { LivenessControls } from "./components/LivenessControls.tsx";
 import { Dashboard } from "./components/Dashboard.tsx";
 import { SettingsView } from "./components/SettingsView.tsx";
+import { ImportView } from "./components/ImportView.tsx";
 
-type View = "dashboard" | "search" | "list" | "domains" | "sessions" | "settings";
+type View = "dashboard" | "search" | "list" | "domains" | "sessions" | "settings" | "import";
 
 export function App() {
   const [view, setView] = useState<View>("dashboard");
   const [filters, setFilters] = useState<Filters>({ privacy: "all" });
   const [devices, setDevices] = useState<DeviceRow[]>([]);
+  const [sources, setSources] = useState<SourceRow[]>([]);
   const [aiSummarize, setAiSummarize] = useState(false);
   const [aiSemantic, setAiSemantic] = useState(false);
 
@@ -22,8 +24,13 @@ export function App() {
     () => api.devices().then((d) => setDevices(d.rows)).catch(() => setDevices([])),
     [],
   );
+  const refreshSources = useCallback(
+    () => api.sources().then((s) => setSources(s.rows)).catch(() => setSources([])),
+    [],
+  );
 
   useEffect(() => {
+    void refreshSources();
     void refreshDevices();
     api
       .aiConfig()
@@ -32,7 +39,7 @@ export function App() {
         setAiSemantic(cfg.providers.some((p) => p.configured && p.canEmbed));
       })
       .catch(() => {});
-  }, [refreshDevices]);
+  }, [refreshDevices, refreshSources]);
 
   const pickDomain = (domain: string) => {
     setFilters((f) => ({ ...f, domain }));
@@ -45,6 +52,7 @@ export function App() {
     { id: "domains", label: "By domain" },
     { id: "list", label: "All URLs" },
     { id: "sessions", label: "Sessions" },
+    { id: "import", label: "Import" },
     { id: "settings", label: "Settings" },
   ];
 
@@ -73,6 +81,7 @@ export function App() {
         <FiltersBar
           filters={filters}
           devices={devices}
+          sources={sources}
           onChange={setFilters}
           searchMode={view === "search"}
         />
@@ -95,6 +104,7 @@ export function App() {
         {view === "list" && <HistoryTable filters={filters} onPickDomain={pickDomain} />}
         {view === "domains" && <DomainView filters={filters} onPickDomain={pickDomain} />}
         {view === "sessions" && <SessionsView />}
+        {view === "import" && <ImportView onImported={refreshSources} />}
         {view === "settings" && <SettingsView />}
       </main>
     </div>
