@@ -28,7 +28,8 @@ export function parseFilters(q: URLSearchParams): UrlFilters {
  * URL appears iff it has a matching visit; precomputed aggregates are still shown.
  */
 export function buildWhere(f: UrlFilters): { sql: string; params: Record<string, string | number> } {
-  const clauses: string[] = [];
+  // Hidden URLs ("ignore" rules) are excluded from every browsing view.
+  const clauses: string[] = ["u.is_hidden = 0"];
   const params: Record<string, string | number> = {};
 
   if (f.domain) {

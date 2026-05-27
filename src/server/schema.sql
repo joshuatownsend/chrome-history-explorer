@@ -20,7 +20,8 @@ CREATE TABLE IF NOT EXISTS urls (
   hostname      TEXT,             -- full host, e.g. mail.google.com
   domain        TEXT,             -- eTLD+1, e.g. google.com
   title         TEXT,
-  is_private    INTEGER NOT NULL DEFAULT 0,  -- 1 = localhost/LAN/IP/.local
+  is_private    INTEGER NOT NULL DEFAULT 0,  -- 1 = localhost/LAN/IP/.local or user rule
+  is_hidden     INTEGER NOT NULL DEFAULT 0,  -- 1 = user "ignore" rule; excluded from views
   visit_count   INTEGER NOT NULL DEFAULT 0,
   first_visited INTEGER,          -- epoch ms
   last_visited  INTEGER,
@@ -31,6 +32,7 @@ CREATE INDEX IF NOT EXISTS idx_urls_domain        ON urls(domain);
 CREATE INDEX IF NOT EXISTS idx_urls_last_visited  ON urls(last_visited DESC);
 CREATE INDEX IF NOT EXISTS idx_urls_visit_count   ON urls(visit_count DESC);
 CREATE INDEX IF NOT EXISTS idx_urls_private       ON urls(is_private);
+-- idx_urls_hidden is created in db.ts migrate() so it works on pre-existing DBs too.
 
 -- The visit event log (~82k rows).
 CREATE TABLE IF NOT EXISTS visits (

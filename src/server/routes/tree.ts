@@ -101,7 +101,7 @@ tree.get("/", (c) => {
               e.status AS liveness, e.result_json AS liveness_json
        FROM urls u
        LEFT JOIN enrichments e ON e.url_id = u.id AND e.kind = 'liveness'
-       WHERE u.domain = ?`,
+       WHERE u.domain = ? AND u.is_hidden = 0`,
     )
     .all(domain);
 

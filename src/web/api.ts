@@ -167,6 +167,15 @@ export const api = {
   tree: (domain: string) =>
     getJson<{ domain: string; children: TreeNode[] }>(`/tree?domain=${encodeURIComponent(domain)}`),
 
+  getPrivacyRules: () => getJson<PrivacyRules>(`/settings/privacy`),
+
+  savePrivacyRules: (rules: { privatePatterns: string[]; hiddenPatterns: string[] }) =>
+    fetch(`/api/settings/privacy`, {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(rules),
+    }).then((r) => r.json() as Promise<PrivacyRules & { changed: number }>),
+
   aiConfig: () =>
     getJson<{
       providers: { id: string; name: string; configured: boolean; canSummarize: boolean; canEmbed: boolean }[];
@@ -205,6 +214,12 @@ export const api = {
         }>,
     ),
 };
+
+export interface PrivacyRules {
+  privatePatterns: string[];
+  hiddenPatterns: string[];
+  counts: { private: number; hidden: number; total: number };
+}
 
 export interface TreeNode {
   label: string;

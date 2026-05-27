@@ -7,8 +7,9 @@ import { SearchView } from "./components/SearchView.tsx";
 import { SessionsView } from "./components/SessionsView.tsx";
 import { LivenessControls } from "./components/LivenessControls.tsx";
 import { Dashboard } from "./components/Dashboard.tsx";
+import { SettingsView } from "./components/SettingsView.tsx";
 
-type View = "dashboard" | "search" | "list" | "domains" | "sessions";
+type View = "dashboard" | "search" | "list" | "domains" | "sessions" | "settings";
 
 export function App() {
   const [view, setView] = useState<View>("dashboard");
@@ -44,6 +45,7 @@ export function App() {
     { id: "domains", label: "By domain" },
     { id: "list", label: "All URLs" },
     { id: "sessions", label: "Sessions" },
+    { id: "settings", label: "Settings" },
   ];
 
   return (
@@ -67,7 +69,7 @@ export function App() {
         </nav>
       </header>
 
-      {view !== "sessions" && view !== "dashboard" && (
+      {(view === "search" || view === "list" || view === "domains") && (
         <FiltersBar
           filters={filters}
           devices={devices}
@@ -93,6 +95,7 @@ export function App() {
         {view === "list" && <HistoryTable filters={filters} onPickDomain={pickDomain} />}
         {view === "domains" && <DomainView filters={filters} onPickDomain={pickDomain} />}
         {view === "sessions" && <SessionsView />}
+        {view === "settings" && <SettingsView />}
       </main>
     </div>
   );

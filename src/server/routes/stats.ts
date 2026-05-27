@@ -36,11 +36,11 @@ stats.get("/", (c) => {
 
   const topDomains = all(
     `SELECT domain, MAX(is_private) is_private, COUNT(*) url_count, SUM(visit_count) visits
-     FROM urls GROUP BY domain ORDER BY visits DESC LIMIT 15`,
+     FROM urls WHERE is_hidden=0 GROUP BY domain ORDER BY visits DESC LIMIT 15`,
   );
   const topUrls = all(
     `SELECT id, url, title, domain, is_private, visit_count, last_visited
-     FROM urls ORDER BY visit_count DESC LIMIT 15`,
+     FROM urls WHERE is_hidden=0 ORDER BY visit_count DESC LIMIT 15`,
   );
   const busiestDays = all(
     `SELECT date(time_ms/1000,'unixepoch','localtime') d, COUNT(*) n

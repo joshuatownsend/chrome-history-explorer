@@ -9,6 +9,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { getDb } from "./db.ts";
 import { parseUrl } from "./lib/domain.ts";
+import { recomputePrivacy } from "./lib/rules.ts";
 
 const SRC = process.argv[2] ?? join(process.cwd(), "History.json");
 
@@ -216,6 +217,7 @@ function main() {
   const db = getDb();
   const t0 = Date.now();
   ingest(db, data);
+  recomputePrivacy(db); // apply any saved user privacy/ignore rules to the fresh data
   const secs = ((Date.now() - t0) / 1000).toFixed(1);
 
   const one = (sql: string) => (db.query(sql).get() as { n: number }).n;

@@ -13,6 +13,7 @@ import { enrich } from "./routes/enrich.ts";
 import { stats } from "./routes/stats.ts";
 import { ai } from "./routes/ai.ts";
 import { tree } from "./routes/tree.ts";
+import { settings } from "./routes/settings.ts";
 import { resetStuckJobs } from "./lib/jobs.ts";
 
 const PORT = Number(process.env.API_PORT ?? 8787);
@@ -38,6 +39,7 @@ api.route("/enrich", enrich);
 api.route("/stats", stats);
 api.route("/ai", ai);
 api.route("/tree", tree);
+api.route("/settings", settings);
 api.get("/health", (c) => c.json({ ok: true, urls: urlCount }));
 
 app.route("/api", api);
