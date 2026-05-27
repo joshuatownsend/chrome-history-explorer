@@ -5,14 +5,17 @@ Browse, sort, filter, and full-text search tens of thousands of visits; group by
 domain; reopen saved tab sessions; check which links are still alive (vs dead/blocked);
 and — optionally — summarize pages and search semantically with AI.
 
-Your data stays on your machine. Private/LAN hosts (localhost, `192.168.x`, `*.local`,
-homelab subdomains) are **never** sent to liveness checks or AI providers.
+Your data stays on your machine. Private/LAN hosts (`localhost`, `192.168.x`, `*.local`, …)
+are **never** sent to liveness checks or AI providers — and you can add your own hosts to
+treat as private or hide entirely (see [Privacy & ignore rules](#privacy--ignore-rules)).
 
 ## Features
 
 - **Browse / sort / filter** a virtualized table of every unique URL, with visit counts,
   last-visit times, and per-device badges.
-- **Group by domain** (true eTLD+1, so `mail.google.com` rolls up under `google.com`).
+- **Group by domain** (true eTLD+1, so `mail.google.com` rolls up under `google.com`),
+  with an optional **tree view** that nests pages under their URL-path hierarchy
+  (`github.com → /user → /repo → /pulls`), aggregating visit counts up the tree.
 - **Full-text search** over titles and URLs (SQLite FTS5) with match highlighting and
   date/device/domain facets.
 - **Sessions** — your saved tab windows with their navigation history; reopen a single
@@ -24,6 +27,8 @@ homelab subdomains) are **never** sent to liveness checks or AI providers.
   embeddings. Works with Anthropic (Claude) and/or OpenAI.
 - **Insights dashboard** — totals, browsing by hour/day-of-week, top domains,
   most-revisited pages, liveness rollup, and per-device labeling.
+- **Privacy & ignore rules** — define your own host patterns to treat as private
+  (skipped from liveness/AI) or hide from the app entirely.
 
 ## Prerequisites
 
@@ -96,6 +101,25 @@ Without a key, every other feature still works; the AI controls simply stay disa
 | `OPENAI_EMBED_MODEL` | `text-embedding-3-small` | Embedding model for semantic search. |
 | `ANTHROPIC_MODEL` | `claude-sonnet-4-6` | Claude model for summaries. |
 
+## Privacy & ignore rules
+
+Beyond the built-in detection (`localhost`, RFC1918 LAN ranges, `*.local`), the **Settings**
+view lets you define your own host patterns for two behaviors:
+
+- **Treat as private** — still visible in the app, but never sent to liveness checks or AI
+  providers, and marked with a 🔒.
+- **Hide entirely** — excluded from all browsing views, search, the domain tree, and
+  dashboard lists.
+
+Pattern syntax (matched against the hostname, one per line):
+
+- a bare domain like `example.com` also matches its subdomains;
+- `*` is a wildcard, e.g. `*.corp.net` or `100.64.*`.
+
+Saving recomputes the flags across every stored URL. Rules persist in the database and are
+re-applied automatically after each `ingest`, so re-importing a fresh Takeout keeps them.
+Nothing beyond `localhost`/LAN is hardcoded — all other privacy is configured here at runtime.
+
 ## Tech stack
 
 - **Backend:** Bun, [Hono](https://hono.dev), `bun:sqlite` (FTS5), [tldts](https://github.com/remusao/tldts) for eTLD+1.
@@ -110,13 +134,14 @@ src/
     ingest.ts           ETL: History.json -> SQLite (idempotent)
     schema.sql          tables, indexes, FTS5
     db.ts               connection + migration runner
-    lib/                domain/privacy, job queue, liveness, page extraction
+    lib/                domain/privacy, user rules, job queue, liveness, page extraction
     ai/                 pluggable provider abstraction (anthropic, openai)
-    routes/             urls, domains, devices, search, sessions, open, enrich, stats, ai
+    routes/             urls, domains, devices, search, sessions, open, enrich,
+                        stats, ai, tree, settings
   web/
-    App.tsx             view shell (Dashboard / Search / By domain / All URLs / Sessions)
+    App.tsx             view shell (Dashboard / Search / By domain / All URLs / Sessions / Settings)
     api.ts              typed fetch client
-    components/         table, domain view, sessions, dashboard, filters, badges
+    components/         table, domain view, tree, sessions, dashboard, settings, filters, badges
 ```
 
 ## Notes & limitations
