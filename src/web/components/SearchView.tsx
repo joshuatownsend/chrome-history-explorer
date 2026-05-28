@@ -4,6 +4,7 @@ import { fmtNum, fmtRelative } from "../lib/format.ts";
 import { Highlight } from "./Highlight.tsx";
 import { LivenessBadge } from "./LivenessBadge.tsx";
 import { SummaryButton } from "./SummaryButton.tsx";
+import { ThreadcrumbButton } from "./ThreadcrumbButton.tsx";
 import { useLazyLiveness } from "../lib/useLazyLiveness.ts";
 
 const PAGE = 50;
@@ -19,6 +20,7 @@ interface Props {
   onPickDomain: (domain: string) => void;
   aiSummarize: boolean;
   aiSemantic: boolean;
+  threadcrumbEnabled: boolean;
 }
 
 function buildQs(f: Filters, limit: number, offset: number): string {
@@ -31,7 +33,7 @@ function buildQs(f: Filters, limit: number, offset: number): string {
   return sp.toString();
 }
 
-export function SearchView({ filters, onPickDomain, aiSummarize, aiSemantic }: Props) {
+export function SearchView({ filters, onPickDomain, aiSummarize, aiSemantic, threadcrumbEnabled }: Props) {
   const [rows, setRows] = useState<UrlRow[]>([]);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
@@ -119,7 +121,10 @@ export function SearchView({ filters, onPickDomain, aiSummarize, aiSemantic }: P
               <div className="truncate text-xs text-neutral-500" title={r.url}>
                 <Highlight text={r.url} query={q} />
               </div>
-              <SummaryButton urlId={r.id} isPrivate={!!r.is_private} enabled={aiSummarize} />
+              <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <ThreadcrumbButton url={r.url} isPrivate={!!r.is_private} enabled={threadcrumbEnabled} />
+                <SummaryButton urlId={r.id} isPrivate={!!r.is_private} enabled={aiSummarize} />
+              </div>
             </div>
             <button
               onClick={() => r.domain && onPickDomain(r.domain)}

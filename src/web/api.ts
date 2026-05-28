@@ -231,7 +231,21 @@ export const api = {
           results: { label: string; inserted?: number; error?: string }[];
         }>,
     ),
+
+  threadcrumbConfig: () => getJson<ThreadcrumbConfig>(`/threadcrumb/config`),
+
+  sendToThreadcrumb: (url: string) =>
+    fetch(`/api/threadcrumb/send`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ url }),
+    }).then((r) => r.json() as Promise<{ id?: string; status?: string; error?: string }>),
 };
+
+export interface ThreadcrumbConfig {
+  configured: boolean;
+  baseUrl: string;
+}
 
 export interface SourceRow {
   source: string;

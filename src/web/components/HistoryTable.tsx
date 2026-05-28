@@ -3,6 +3,7 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { api, type Filters, type UrlRow } from "../api.ts";
 import { fmtNum, fmtRelative } from "../lib/format.ts";
 import { LivenessBadge } from "./LivenessBadge.tsx";
+import { ThreadcrumbButton } from "./ThreadcrumbButton.tsx";
 import { useLazyLiveness } from "../lib/useLazyLiveness.ts";
 
 const PAGE = 150;
@@ -18,9 +19,10 @@ const COLUMNS: { key: SortKey; label: string; className: string }[] = [
 interface Props {
   filters: Filters;
   onPickDomain: (domain: string) => void;
+  threadcrumbEnabled: boolean;
 }
 
-export function HistoryTable({ filters, onPickDomain }: Props) {
+export function HistoryTable({ filters, onPickDomain, threadcrumbEnabled }: Props) {
   const [rows, setRows] = useState<UrlRow[]>([]);
   const [total, setTotal] = useState(0);
   const [sort, setSort] = useState<SortKey>("last_visited");
@@ -93,6 +95,7 @@ export function HistoryTable({ filters, onPickDomain }: Props) {
             {sort === col.key && <span className="ml-1">{dir === "desc" ? "↓" : "↑"}</span>}
           </button>
         ))}
+        {threadcrumbEnabled && <span className="w-8 shrink-0" />}
         <span className="w-24 shrink-0 text-right">Status</span>
       </div>
 
@@ -147,6 +150,11 @@ export function HistoryTable({ filters, onPickDomain }: Props) {
                 <div className="w-28 shrink-0 text-right text-xs text-neutral-400">
                   {fmtRelative(r.last_visited)}
                 </div>
+                {threadcrumbEnabled && (
+                  <div className="w-8 shrink-0 text-center">
+                    <ThreadcrumbButton url={r.url} isPrivate={!!r.is_private} enabled={threadcrumbEnabled} compact />
+                  </div>
+                )}
                 <div className="w-24 shrink-0 text-right">
                   <LivenessBadge
                     status={liveness.get(r.id)?.status ?? r.liveness}

@@ -19,6 +19,7 @@ export function App() {
   const [sources, setSources] = useState<SourceRow[]>([]);
   const [aiSummarize, setAiSummarize] = useState(false);
   const [aiSemantic, setAiSemantic] = useState(false);
+  const [threadcrumbEnabled, setThreadcrumbEnabled] = useState(false);
 
   const refreshDevices = useCallback(
     () => api.devices().then((d) => setDevices(d.rows)).catch(() => setDevices([])),
@@ -38,6 +39,10 @@ export function App() {
         setAiSummarize(cfg.providers.some((p) => p.configured && p.canSummarize));
         setAiSemantic(cfg.providers.some((p) => p.configured && p.canEmbed));
       })
+      .catch(() => {});
+    api
+      .threadcrumbConfig()
+      .then((cfg) => setThreadcrumbEnabled(cfg.configured))
       .catch(() => {});
   }, [refreshDevices, refreshSources]);
 
@@ -99,9 +104,12 @@ export function App() {
             onPickDomain={pickDomain}
             aiSummarize={aiSummarize}
             aiSemantic={aiSemantic}
+            threadcrumbEnabled={threadcrumbEnabled}
           />
         )}
-        {view === "list" && <HistoryTable filters={filters} onPickDomain={pickDomain} />}
+        {view === "list" && (
+          <HistoryTable filters={filters} onPickDomain={pickDomain} threadcrumbEnabled={threadcrumbEnabled} />
+        )}
         {view === "domains" && <DomainView filters={filters} onPickDomain={pickDomain} />}
         {view === "sessions" && <SessionsView />}
         {view === "import" && <ImportView onImported={refreshSources} />}

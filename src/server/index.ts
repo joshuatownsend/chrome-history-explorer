@@ -15,6 +15,7 @@ import { ai } from "./routes/ai.ts";
 import { tree } from "./routes/tree.ts";
 import { settings } from "./routes/settings.ts";
 import { importRoutes, sourcesRoute } from "./routes/import.ts";
+import { threadcrumb } from "./routes/threadcrumb.ts";
 import { resetStuckJobs } from "./lib/jobs.ts";
 
 const PORT = Number(process.env.API_PORT ?? 8787);
@@ -43,6 +44,7 @@ api.route("/tree", tree);
 api.route("/settings", settings);
 api.route("/sources", sourcesRoute); // GET /api/sources
 api.route("/import", importRoutes); // GET /api/import/detect, POST /api/import/run
+api.route("/threadcrumb", threadcrumb); // GET /api/threadcrumb/config, POST /api/threadcrumb/send
 api.get("/health", (c) => c.json({ ok: true, urls: urlCount }));
 
 app.route("/api", api);

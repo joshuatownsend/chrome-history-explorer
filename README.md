@@ -32,6 +32,8 @@ treat as private or hide entirely (see [Privacy & ignore rules](#privacy--ignore
   `error`, with a Wayback Machine fallback for dead links.
 - **AI (optional, pluggable)** — on-demand page summaries and semantic search via
   embeddings. Works with Anthropic (Claude) and/or OpenAI.
+- **Send to ThreadCrumb (optional)** — one-click forward a public history link to a
+  [ThreadCrumb](https://threadcrumb.io) intent inbox; private/hidden URLs are refused.
 - **Insights dashboard** — totals, browsing by hour/day-of-week, top domains,
   most-revisited pages, liveness rollup, and per-device labeling.
 - **Privacy & ignore rules** — define your own host patterns to treat as private
@@ -125,6 +127,32 @@ Without a key, every other feature still works; the AI controls simply stay disa
 | `OPENAI_MODEL` | `gpt-4o-mini` | Chat model for summaries. |
 | `OPENAI_EMBED_MODEL` | `text-embedding-3-small` | Embedding model for semantic search. |
 | `ANTHROPIC_MODEL` | `claude-sonnet-4-6` | Claude model for summaries. |
+| `THREADCRUMB_TOKEN` | _(unset)_ | API token enabling the "send to ThreadCrumb" button. |
+| `THREADCRUMB_BASE_URL` | `https://threadcrumb.io` | ThreadCrumb instance to send links to. |
+
+## Send links to ThreadCrumb (optional)
+
+If you use [ThreadCrumb](https://threadcrumb.io) — an "intent inbox" for links you
+mean to come back to — each public history row gets a **🧵 ThreadCrumb** button (in
+Search and the All-URLs table) that forwards the link to your inbox.
+
+Setup:
+
+1. In ThreadCrumb, create an API token (it's shown only once — copy the `tc_…` value).
+2. Add it to `.env`:
+
+   ```bash
+   # .env
+   THREADCRUMB_TOKEN=tc_...                  # enables the button
+   THREADCRUMB_BASE_URL=https://threadcrumb.io   # or your self-hosted instance
+   ```
+
+The button stays hidden until a token is set. The token lives only on this server
+(never the browser), so requests don't hit CORS and the key isn't exposed. Sending is
+**gated**: only links that exist in your history are forwarded, and anything flagged
+**private or hidden is refused** — the same posture as liveness and AI. Sends carry a
+little context (visit count, first/last visit, which sources saw the URL); re-sending is
+safe because ThreadCrumb dedupes by URL.
 
 ## Privacy & ignore rules
 
