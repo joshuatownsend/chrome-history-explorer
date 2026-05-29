@@ -15,22 +15,8 @@ export class OpenAIProvider implements AIProvider {
     return { "content-type": "application/json", authorization: `Bearer ${this.apiKey}` };
   }
 
-  async summarize(title: string, text: string): Promise<string> {
-    const r = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify({
-        model: CHAT_MODEL,
-        max_tokens: 200,
-        messages: [
-          { role: "system", content: SUMMARY_SYSTEM },
-          { role: "user", content: buildSummaryPrompt(title, text) },
-        ],
-      }),
-    });
-    if (!r.ok) throw new Error(`OpenAI ${r.status}: ${(await r.text()).slice(0, 200)}`);
-    const data = (await r.json()) as { choices?: { message?: { content?: string } }[] };
-    return data.choices?.[0]?.message?.content?.trim() ?? "";
+  summarize(title: string, text: string): Promise<string> {
+    return this.complete(SUMMARY_SYSTEM, buildSummaryPrompt(title, text));
   }
 
   async complete(system: string, user: string, maxTokens = 200): Promise<string> {

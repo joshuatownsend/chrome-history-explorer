@@ -14,6 +14,7 @@
  * stale embeddings and must be excluded here too (mirrors ai.ts / journeys).
  */
 import type { Database } from "bun:sqlite";
+import { representativeTitles, topDomain } from "./labels.ts";
 
 export interface ClusterBuildOpts {
   k?: number; // number of clusters (auto when omitted)
@@ -217,28 +218,19 @@ export function buildClusters(db: Database, opts: ClusterBuildOpts = {}): BuildR
 
       // Order members by distance (representative first).
       const order = members.map((_, i) => i).sort((a, b) => dists[c][a] - dists[c][b]);
-      const domainCount = new Map<string, number>();
-      for (const m of members) if (m.domain) domainCount.set(m.domain, (domainCount.get(m.domain) ?? 0) + 1);
-      const topDomain = [...domainCount.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+      const top = topDomain(members);
+      const repTitles = representativeTitles(
+        order.map((i) => members[i]),
+        30,
+      );
 
-      const repTitles: string[] = [];
-      const seen = new Set<string>();
-      for (const i of order) {
-        const t = (members[i].title || members[i].domain || "").trim();
-        if (t && !seen.has(t)) {
-          seen.add(t);
-          repTitles.push(t);
-          if (repTitles.length >= 30) break;
-        }
-      }
-
-      const info = insertCluster.run({ $label: topDomain ?? "(unlabeled)", $size: members.length, $at: at });
+      const info = insertCluster.run({ $label: top ?? "(unlabeled)", $size: members.length, $at: at });
       const cid = Number(info.lastInsertRowid);
       for (const i of order) {
         insertMember.run({ $cid: cid, $uid: members[i].url_id, $dist: dists[c][i] });
         memberTotal++;
       }
-      summaries.push({ id: cid, size: members.length, topDomain, repTitles });
+      summaries.push({ id: cid, size: members.length, topDomain: top, repTitles });
     });
   })();
 

@@ -10,17 +10,7 @@ import {
 } from "../api.ts";
 import { fmtNum, fmtRelative } from "../lib/format.ts";
 import { ThreadcrumbButton } from "./ThreadcrumbButton.tsx";
-
-function Card({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
-      <h2 className="mb-1 text-xs font-semibold uppercase tracking-wide text-neutral-500">{title}</h2>
-      {hint && <p className="mb-3 text-[11px] text-neutral-600">{hint}</p>}
-      {!hint && <div className="mb-3" />}
-      {children}
-    </div>
-  );
-}
+import { Card } from "./Card.tsx";
 
 const HOUR_LABEL = (h: number | null) =>
   h == null ? "—" : `${((h + 11) % 12) + 1}${h < 12 ? "am" : "pm"}`;
@@ -54,7 +44,11 @@ export function InsightsView({ threadcrumbEnabled }: { threadcrumbEnabled: boole
 
   // Group "on this day" by year, newest first.
   const otdByYear = new Map<number, OnThisDayRow[]>();
-  for (const r of otd) (otdByYear.get(r.yr) ?? otdByYear.set(r.yr, []).get(r.yr)!).push(r);
+  for (const r of otd) {
+    const arr = otdByYear.get(r.yr);
+    if (arr) arr.push(r);
+    else otdByYear.set(r.yr, [r]);
+  }
   const years = [...otdByYear.keys()].sort((a, b) => b - a);
 
   const archivedOf = (j: string | null) => {

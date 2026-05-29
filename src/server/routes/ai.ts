@@ -111,11 +111,13 @@ ai.post("/embed", async (c) => {
     return c.json({ error: "scope must be 'top', 'all', or 'domain'" }, 400);
   }
 
-  // Skip ones already embedded.
-  const todo = rows.filter(
-    (r) =>
-      !db.query(`SELECT 1 FROM enrichments WHERE url_id=? AND kind='embedding' AND status='done'`).get(r.id),
+  // Skip ones already embedded — one query into a Set instead of a probe per row.
+  const done = new Set(
+    (db.query(`SELECT url_id FROM enrichments WHERE kind='embedding' AND status='done'`).all() as {
+      url_id: number;
+    }[]).map((r) => r.url_id),
   );
+  const todo = rows.filter((r) => !done.has(r.id));
   if (!todo.length) return c.json({ embedded: 0, skipped: rows.length });
 
   const upsert = db.query(

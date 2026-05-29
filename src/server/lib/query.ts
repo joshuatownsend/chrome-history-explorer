@@ -87,8 +87,12 @@ export function parseSort(q: URLSearchParams): { col: string; dir: "ASC" | "DESC
   return { col, dir };
 }
 
+/** Parse + clamp an integer query param to [min, max]; def for missing/non-numeric. */
+export function clampInt(raw: string | null, def: number, min: number, max: number): number {
+  const n = Number(raw ?? def);
+  return Math.min(Math.max(Number.isFinite(n) ? n : def, min), max);
+}
+
 export function parsePage(q: URLSearchParams): { limit: number; offset: number } {
-  const limit = Math.min(Math.max(Number(q.get("limit") ?? 100), 1), 500);
-  const offset = Math.max(Number(q.get("offset") ?? 0), 0);
-  return { limit, offset };
+  return { limit: clampInt(q.get("limit"), 100, 1, 500), offset: Math.max(Number(q.get("offset") ?? 0), 0) };
 }

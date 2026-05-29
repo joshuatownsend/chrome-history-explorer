@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { getDb } from "../db.ts";
 import { buildClusters } from "../lib/clusters.ts";
 import { getProvider } from "../ai/index.ts";
-import { parseLabel } from "../lib/labels.ts";
+import { completeLabel } from "../lib/labels.ts";
+import { parsePage } from "../lib/query.ts";
 
 export const clusters = new Hono();
 
@@ -38,13 +39,8 @@ clusters.post("/build", async (c) => {
     const labels = await Promise.all(
       result.summaries.map(async (s) => {
         if (!s.repTitles.length) return null;
-        try {
-          const raw = await provider.complete(system, "Page titles:\n" + s.repTitles.map((t) => `- ${t}`).join("\n"));
-          const { label, description } = parseLabel(raw);
-          return label ? { id: s.id, label, description } : null;
-        } catch {
-          return null; // leave heuristic label on failure
-        }
+        const r = await completeLabel(provider, system, "Page titles:\n" + s.repTitles.map((t) => `- ${t}`).join("\n"));
+        return r ? { id: s.id, ...r } : null; // null leaves the heuristic label
       }),
     );
     const tx = db.transaction(() => {
@@ -137,9 +133,7 @@ clusters.get("/trends", (c) => {
 clusters.get("/:id", (c) => {
   const db = getDb();
   const id = Number(c.req.param("id"));
-  const sp = new URL(c.req.url).searchParams;
-  const limit = Math.min(Math.max(Number(sp.get("limit") ?? 100), 1), 500);
-  const offset = Math.max(Number(sp.get("offset") ?? 0), 0);
+  const { limit, offset } = parsePage(new URL(c.req.url).searchParams);
 
   const cluster = db.query(`SELECT id, label, description, size, label_source FROM clusters WHERE id = ?`).get(id);
   if (!cluster) return c.json({ error: "cluster not found" }, 404);

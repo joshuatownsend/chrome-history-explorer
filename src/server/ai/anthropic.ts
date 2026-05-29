@@ -15,24 +15,8 @@ export class AnthropicProvider implements AIProvider {
 
   constructor(private apiKey: string) {}
 
-  async summarize(title: string, text: string): Promise<string> {
-    const r = await fetch("https://api.anthropic.com/v1/messages", {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-api-key": this.apiKey,
-        "anthropic-version": "2023-06-01",
-      },
-      body: JSON.stringify({
-        model: MODEL,
-        max_tokens: 200,
-        system: SUMMARY_SYSTEM,
-        messages: [{ role: "user", content: buildSummaryPrompt(title, text) }],
-      }),
-    });
-    if (!r.ok) throw new Error(`Anthropic ${r.status}: ${(await r.text()).slice(0, 200)}`);
-    const data = (await r.json()) as { content?: { text?: string }[] };
-    return data.content?.[0]?.text?.trim() ?? "";
+  summarize(title: string, text: string): Promise<string> {
+    return this.complete(SUMMARY_SYSTEM, buildSummaryPrompt(title, text));
   }
 
   async complete(system: string, user: string, maxTokens = 200): Promise<string> {
