@@ -115,6 +115,21 @@ bun run server               # serves everything at http://localhost:8787
 bun run dev                  # Vite UI on :5173 (proxying the API on :8787)
 ```
 
+> **Loopback-only by default.** The server binds to `127.0.0.1`, so it's
+> reachable only from the machine it runs on. This is deliberate — it's a
+> no-login tool that can open browser tabs and read your full history. To reach
+> it from another device (phone, another box on your LAN), set `API_HOST` **and**
+> list the hostnames/IPs you'll use in `API_ALLOWED_HOSTS` (the rebinding/CSRF
+> guard rejects anything else):
+>
+> ```bash
+> API_HOST=0.0.0.0
+> API_ALLOWED_HOSTS=192.168.1.50,history.lan
+> ```
+>
+> Only do this on a trusted network, and ideally put it behind auth (a reverse
+> proxy) or a VPN/SSH tunnel — see [Security](#security).
+
 ## AI configuration (optional)
 
 Summaries and semantic search activate only when a provider key is present. Bun
