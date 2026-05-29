@@ -38,7 +38,7 @@ export function FiltersBar({ filters, devices, sources, onChange, searchMode }: 
           value={text}
           onChange={(e) => setText(e.target.value)}
           placeholder={searchMode ? "search titles & URLs…" : "substring match…"}
-          className="w-72 rounded bg-neutral-800 px-2 py-1 outline-none ring-1 ring-neutral-700 focus:ring-blue-600"
+          className="w-72 rounded-sm bg-neutral-800 px-2 py-1 outline-hidden ring-1 ring-neutral-700 focus:ring-blue-600"
         />
       </label>
 
@@ -47,7 +47,7 @@ export function FiltersBar({ filters, devices, sources, onChange, searchMode }: 
         <select
           value={filters.device ?? ""}
           onChange={(e) => onChange({ ...filters, device: e.target.value || undefined })}
-          className="rounded bg-neutral-800 px-2 py-1 ring-1 ring-neutral-700"
+          className="rounded-sm bg-neutral-800 px-2 py-1 ring-1 ring-neutral-700"
         >
           <option value="">All devices</option>
           {devices.map((d) => (
@@ -64,7 +64,7 @@ export function FiltersBar({ filters, devices, sources, onChange, searchMode }: 
           <select
             value={filters.source ?? ""}
             onChange={(e) => onChange({ ...filters, source: e.target.value || undefined })}
-            className="rounded bg-neutral-800 px-2 py-1 ring-1 ring-neutral-700"
+            className="rounded-sm bg-neutral-800 px-2 py-1 ring-1 ring-neutral-700"
           >
             <option value="">All sources</option>
             {sources.map((s) => (
@@ -83,7 +83,7 @@ export function FiltersBar({ filters, devices, sources, onChange, searchMode }: 
           onChange={(e) =>
             onChange({ ...filters, privacy: e.target.value as Filters["privacy"] })
           }
-          className="rounded bg-neutral-800 px-2 py-1 ring-1 ring-neutral-700"
+          className="rounded-sm bg-neutral-800 px-2 py-1 ring-1 ring-neutral-700"
         >
           {PRIVACY.map((p) => (
             <option key={p.value} value={p.value}>
@@ -98,7 +98,7 @@ export function FiltersBar({ filters, devices, sources, onChange, searchMode }: 
         <input
           type="date"
           onChange={(e) => onChange({ ...filters, from: dateInputToMs(e.target.value) })}
-          className="rounded bg-neutral-800 px-2 py-1 ring-1 ring-neutral-700"
+          className="rounded-sm bg-neutral-800 px-2 py-1 ring-1 ring-neutral-700"
         />
       </label>
       <label className="flex flex-col gap-1">
@@ -106,14 +106,14 @@ export function FiltersBar({ filters, devices, sources, onChange, searchMode }: 
         <input
           type="date"
           onChange={(e) => onChange({ ...filters, to: dateInputToMs(e.target.value, true) })}
-          className="rounded bg-neutral-800 px-2 py-1 ring-1 ring-neutral-700"
+          className="rounded-sm bg-neutral-800 px-2 py-1 ring-1 ring-neutral-700"
         />
       </label>
 
       {filters.domain && (
         <button
           onClick={() => onChange({ ...filters, domain: undefined })}
-          className="rounded bg-blue-900/50 px-2 py-1 text-blue-200 ring-1 ring-blue-700 hover:bg-blue-900"
+          className="rounded-sm bg-blue-900/50 px-2 py-1 text-blue-200 ring-1 ring-blue-700 hover:bg-blue-900"
         >
           domain: {filters.domain} ✕
         </button>

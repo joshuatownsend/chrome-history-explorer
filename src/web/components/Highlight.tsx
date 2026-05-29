@@ -15,7 +15,7 @@ export function Highlight({ text, query }: { text: string | null; query: string 
     <>
       {parts.map((p, i) =>
         testRe.test(p) ? (
-          <mark key={i} className="rounded bg-yellow-500/30 text-yellow-100">
+          <mark key={i} className="rounded-sm bg-yellow-500/30 text-yellow-100">
             {p}
           </mark>
         ) : (

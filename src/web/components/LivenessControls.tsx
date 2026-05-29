@@ -34,7 +34,7 @@ export function LivenessControls({ filters }: { filters: Filters }) {
     <button
       onClick={onClick}
       disabled={busy}
-      className="rounded bg-neutral-800 px-2 py-1 text-xs ring-1 ring-neutral-700 hover:bg-neutral-700 disabled:opacity-50"
+      className="rounded-sm bg-neutral-800 px-2 py-1 text-xs ring-1 ring-neutral-700 hover:bg-neutral-700 disabled:opacity-50"
     >
       {children}
     </button>

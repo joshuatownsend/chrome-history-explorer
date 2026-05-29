@@ -47,7 +47,7 @@ export function SessionsView() {
               <button onClick={() => openSession(s.id)} className="flex flex-1 items-center gap-2 truncate text-left">
                 <span className="text-neutral-500">{openId === s.id ? "▾" : "▸"}</span>
                 <span className="font-medium text-neutral-100">Window</span>
-                <span className="rounded bg-neutral-800 px-1.5 py-0.5 text-xs text-neutral-400">
+                <span className="rounded-sm bg-neutral-800 px-1.5 py-0.5 text-xs text-neutral-400">
                   {s.tab_count} tab{s.tab_count === 1 ? "" : "s"}
                 </span>
                 <span className="truncate text-xs text-neutral-500">{s.preview}</span>
@@ -56,7 +56,7 @@ export function SessionsView() {
               {openId === s.id && tabs.length > 0 && (
                 <button
                   onClick={() => reopen(tabs.map((t) => t.current_url ?? "").filter(Boolean))}
-                  className="shrink-0 rounded bg-blue-700 px-2 py-1 text-xs text-white hover:bg-blue-600"
+                  className="shrink-0 rounded-sm bg-blue-700 px-2 py-1 text-xs text-white hover:bg-blue-600"
                 >
                   Reopen all
                 </button>
@@ -91,7 +91,7 @@ export function SessionsView() {
                       {t.current_url && (
                         <button
                           onClick={() => reopen([t.current_url!])}
-                          className="shrink-0 rounded px-2 py-0.5 text-xs text-blue-400 hover:bg-neutral-800"
+                          className="shrink-0 rounded-sm px-2 py-0.5 text-xs text-blue-400 hover:bg-neutral-800"
                         >
                           open
                         </button>
@@ -127,7 +127,7 @@ export function SessionsView() {
       </div>
 
       {toast && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded bg-neutral-800 px-4 py-2 text-sm text-neutral-100 shadow-lg ring-1 ring-neutral-700">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-sm bg-neutral-800 px-4 py-2 text-sm text-neutral-100 shadow-lg ring-1 ring-neutral-700">
           {toast}
         </div>
       )}

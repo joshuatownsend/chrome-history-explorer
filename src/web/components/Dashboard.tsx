@@ -26,7 +26,7 @@ function DeviceLabelRow({ device, onSaved }: { device: DeviceRow; onSaved: () =>
         onBlur={save}
         onKeyDown={(e) => e.key === "Enter" && (e.target as HTMLInputElement).blur()}
         placeholder={`${device.client_id.slice(0, 10)}…`}
-        className="min-w-0 flex-1 rounded bg-neutral-800/60 px-2 py-1 text-neutral-200 outline-none ring-1 ring-transparent focus:bg-neutral-800 focus:ring-blue-600"
+        className="min-w-0 flex-1 rounded-sm bg-neutral-800/60 px-2 py-1 text-neutral-200 outline-hidden ring-1 ring-transparent focus:bg-neutral-800 focus:ring-blue-600"
       />
       {saved && <span className="text-xs text-green-400">saved</span>}
       <span className="shrink-0 tabular-nums text-neutral-500">{fmtNum(device.visit_count)}</span>
@@ -161,7 +161,7 @@ export function Dashboard({
                 .map(([state, n]) => (
                   <div key={state} className="flex items-center gap-2 text-sm">
                     <span className="w-24 text-neutral-400">{state}</span>
-                    <div className="h-2 flex-1 overflow-hidden rounded bg-neutral-800">
+                    <div className="h-2 flex-1 overflow-hidden rounded-sm bg-neutral-800">
                       <div
                         className="h-full bg-blue-500"
                         style={{ width: `${(n / liveTotal) * 100}%` }}

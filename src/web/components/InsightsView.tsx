@@ -155,7 +155,7 @@ export function InsightsView({ threadcrumbEnabled }: { threadcrumbEnabled: boole
               {recurring.slice(0, 12).map((r) => (
                 <li key={r.domain} className="flex items-center gap-2">
                   <span className="flex-1 truncate text-neutral-200">{r.domain}</span>
-                  <span className={`rounded px-1.5 py-0.5 text-[11px] ${CADENCE_TONE[r.cadence] ?? ""}`}>
+                  <span className={`rounded-sm px-1.5 py-0.5 text-[11px] ${CADENCE_TONE[r.cadence] ?? ""}`}>
                     {r.cadence}
                   </span>
                   <span className="w-10 shrink-0 text-right tabular-nums text-neutral-600">{r.days}d</span>
