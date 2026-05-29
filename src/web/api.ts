@@ -240,7 +240,82 @@ export const api = {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ url }),
     }).then((r) => r.json() as Promise<{ id?: string; status?: string; error?: string }>),
+
+  buildJourneys: (opts: { gapMinutes?: number; minPages?: number; days?: number } = {}) =>
+    fetch(`/api/journeys/build`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(opts),
+    }).then((r) => r.json() as Promise<{ journeys: number }>),
+
+  journeys: (
+    opts: {
+      from?: number;
+      to?: number;
+      device?: string;
+      sort?: "recent" | "hops";
+      limit?: number;
+      offset?: number;
+    } = {},
+  ) => getJson<{ total: number; limit: number; offset: number; rows: JourneyRow[] }>(`/journeys${qs(opts)}`),
+
+  journey: (id: number) =>
+    getJson<{ journey: JourneyDetail; visits: JourneyVisit[] }>(`/journeys/${id}`),
+
+  labelJourney: (id: number, prefer?: string) =>
+    fetch(`/api/journeys/${id}/label`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ prefer }),
+    }).then(
+      (r) =>
+        r.json() as Promise<{
+          label?: string;
+          description?: string;
+          label_source?: string;
+          provider?: string;
+          error?: string;
+        }>,
+    ),
 };
+
+export interface JourneyRow {
+  id: number;
+  client_id: string | null;
+  start_ms: number;
+  end_ms: number;
+  visit_count: number;
+  url_count: number;
+  domain_count: number;
+  link_hops: number;
+  label: string | null;
+  description: string | null;
+  label_source: string | null;
+  device_label: string | null;
+  entry_title: string | null;
+  entry_domain: string | null;
+  exit_title: string | null;
+  exit_domain: string | null;
+  preview: string | null;
+}
+
+export interface JourneyDetail extends JourneyRow {
+  entry_url_id: number | null;
+  exit_url_id: number | null;
+}
+
+export interface JourneyVisit {
+  ord: number;
+  time_ms: number;
+  transition: string | null;
+  url_id: number;
+  url: string;
+  title: string | null;
+  domain: string | null;
+  is_private: number;
+  liveness: string | null;
+  liveness_json: string | null;
+}
 
 export interface ThreadcrumbConfig {
   configured: boolean;

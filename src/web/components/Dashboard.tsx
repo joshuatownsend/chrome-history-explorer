@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type DeviceRow, type Stats } from "../api.ts";
+import { api, type DeviceRow, type JourneyRow, type Stats } from "../api.ts";
 import { fmtDate, fmtNum } from "../lib/format.ts";
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -73,18 +73,24 @@ function Bars({ data, label }: { data: { k: string; v: number }[]; label?: (k: s
 
 export function Dashboard({
   onPickDomain,
+  onOpenJourneys,
   devices,
   onLabelSaved,
 }: {
   onPickDomain: (d: string) => void;
+  onOpenJourneys: () => void;
   devices: DeviceRow[];
   onLabelSaved: () => void;
 }) {
   const [s, setS] = useState<Stats | null>(null);
+  const [journeys, setJourneys] = useState<JourneyRow[]>([]);
   useEffect(() => {
     api.stats().then(setS).catch(() => setS(null));
+    api.journeys({ sort: "hops", limit: 6 }).then((r) => setJourneys(r.rows)).catch(() => setJourneys([]));
   }, []);
   if (!s) return <div className="p-8 text-neutral-500">Loading insights…</div>;
+
+  const hasHops = journeys.some((j) => j.link_hops > 0);
 
   const days = Math.round((s.totals.last_visit - s.totals.first_visit) / 86_400_000);
   const hourData = Array.from({ length: 24 }, (_, h) => ({
@@ -182,6 +188,35 @@ export function Dashboard({
               </li>
             ))}
           </ol>
+        </Card>
+
+        <Card title={hasHops ? "Deepest rabbit holes" : "Research sessions"}>
+          {journeys.length === 0 ? (
+            <p className="text-sm text-neutral-500">
+              No research sessions yet. Open{" "}
+              <button onClick={onOpenJourneys} className="text-blue-400 hover:text-blue-300">
+                Research Sessions
+              </button>{" "}
+              and click Build to detect bursts of browsing.
+            </p>
+          ) : (
+            <ol className="space-y-1 text-sm">
+              {journeys.map((j) => (
+                <li key={j.id} className="flex items-center gap-2">
+                  <button
+                    onClick={onOpenJourneys}
+                    className="flex-1 truncate text-left text-neutral-200 hover:text-blue-400"
+                    title={j.description ?? undefined}
+                  >
+                    {j.label || "(untitled session)"}
+                  </button>
+                  <span className="shrink-0 tabular-nums text-neutral-500">
+                    {j.link_hops > 0 ? `🐇 ${fmtNum(j.link_hops)}` : `${fmtNum(j.url_count)}p`}
+                  </span>
+                </li>
+              ))}
+            </ol>
+          )}
         </Card>
 
         <Card title="Busiest days">

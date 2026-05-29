@@ -33,6 +33,24 @@ export class OpenAIProvider implements AIProvider {
     return data.choices?.[0]?.message?.content?.trim() ?? "";
   }
 
+  async complete(system: string, user: string, maxTokens = 200): Promise<string> {
+    const r = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: this.headers(),
+      body: JSON.stringify({
+        model: CHAT_MODEL,
+        max_tokens: maxTokens,
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: user },
+        ],
+      }),
+    });
+    if (!r.ok) throw new Error(`OpenAI ${r.status}: ${(await r.text()).slice(0, 200)}`);
+    const data = (await r.json()) as { choices?: { message?: { content?: string } }[] };
+    return data.choices?.[0]?.message?.content?.trim() ?? "";
+  }
+
   async embed(texts: string[]): Promise<number[][]> {
     const r = await fetch("https://api.openai.com/v1/embeddings", {
       method: "POST",
