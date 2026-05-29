@@ -21,9 +21,20 @@ interface VisitRow {
   url_id: number;
   time_ms: number;
   client_id: string | null;
+  source: string | null;
   transition: string | null;
   domain: string | null;
   title: string | null;
+}
+
+/**
+ * The stream a visit belongs to. Synced devices are keyed by client_id; locally
+ * imported profiles share client_id=null but differ by `source` (e.g.
+ * "chrome:Default" vs "firefox:..."), so fall back to source. Namespaced to
+ * avoid any collision between a client_id hash and a source string.
+ */
+function streamKey(r: VisitRow): string {
+  return r.client_id != null ? `c:${r.client_id}` : `s:${r.source ?? ""}`;
 }
 
 /** Title for a journey when no LLM label has been generated. */
@@ -56,12 +67,13 @@ export function buildJourneys(db: Database, opts: BuildOpts = {}): number {
   // NULL client_id sorts together as its own partition.
   const rows = db
     .query<VisitRow, [number]>(
-      `SELECT v.id AS visit_id, v.url_id, v.time_ms, v.client_id, v.transition,
+      `SELECT v.id AS visit_id, v.url_id, v.time_ms, v.client_id, v.source, v.transition,
               u.domain, u.title
          FROM visits v
          JOIN urls u ON u.id = v.url_id
         WHERE u.is_hidden = 0 AND v.time_ms >= ?
-        ORDER BY v.client_id, v.time_ms`,
+        ORDER BY CASE WHEN v.client_id IS NOT NULL THEN 'c' || v.client_id
+                      ELSE 's' || COALESCE(v.source, '') END, v.time_ms`,
     )
     .all(cutoff);
 
@@ -118,9 +130,9 @@ export function buildJourneys(db: Database, opts: BuildOpts = {}): number {
     let group: VisitRow[] = [];
     for (const r of rows) {
       const prev = group[group.length - 1];
-      const sameDevice = prev ? prev.client_id === r.client_id : true;
+      const sameStream = prev ? streamKey(prev) === streamKey(r) : true;
       const withinGap = prev ? r.time_ms - prev.time_ms <= gapMs : true;
-      if (prev && (!sameDevice || !withinGap)) {
+      if (prev && (!sameStream || !withinGap)) {
         flush(group);
         group = [];
       }

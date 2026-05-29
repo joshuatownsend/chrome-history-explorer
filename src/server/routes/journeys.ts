@@ -135,12 +135,15 @@ journeys.post("/:id/label", async (c) => {
     return c.json({ label: journey.label, description: journey.description, label_source: "heuristic" });
   }
 
-  // Only non-private pages are ever sent to an AI provider (mirrors ai.ts).
+  // Only non-private, non-hidden pages are ever sent to an AI provider (mirrors
+  // ai.ts). is_hidden is checked here too: ignore rules added AFTER a build are
+  // not reflected in journey_visits, so filtering at label time prevents a
+  // now-ignored URL from being disclosed to the provider.
   const pages = db
     .query<{ title: string | null; domain: string | null }, [number]>(
       `SELECT u.title, u.domain
          FROM journey_visits jv JOIN urls u ON u.id = jv.url_id
-        WHERE jv.journey_id = ? AND u.is_private = 0
+        WHERE jv.journey_id = ? AND u.is_private = 0 AND u.is_hidden = 0
         ORDER BY jv.ord`,
     )
     .all(id);
