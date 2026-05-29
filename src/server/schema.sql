@@ -110,6 +110,36 @@ CREATE TABLE IF NOT EXISTS enrichments (
 );
 CREATE INDEX IF NOT EXISTS idx_enrich_kind_status ON enrichments(kind, status);
 
+-- Derived "research sessions": bursts of visits with no long idle gap.
+-- Computed from the visit log by lib/journeys.ts (full rebuild on demand).
+-- NOTE: deliberately distinct from `sessions` above (Takeout saved tab windows).
+CREATE TABLE IF NOT EXISTS journeys (
+  id           INTEGER PRIMARY KEY,
+  client_id    TEXT,                       -- device the burst happened on (nullable)
+  start_ms     INTEGER NOT NULL,
+  end_ms       INTEGER NOT NULL,
+  visit_count  INTEGER NOT NULL,           -- total visits in the burst
+  url_count    INTEGER NOT NULL,           -- distinct URLs
+  domain_count INTEGER NOT NULL,
+  link_hops    INTEGER NOT NULL DEFAULT 0, -- # visits via transition='link' (rabbit-hole depth proxy)
+  entry_url_id INTEGER REFERENCES urls(id),
+  exit_url_id  INTEGER REFERENCES urls(id),
+  label        TEXT,                        -- title (LLM or heuristic)
+  description  TEXT,                        -- one-line LLM summary (nullable)
+  label_source TEXT                         -- 'llm' | 'heuristic' | NULL
+);
+CREATE INDEX IF NOT EXISTS idx_journeys_start ON journeys(start_ms DESC);
+
+CREATE TABLE IF NOT EXISTS journey_visits (
+  journey_id INTEGER NOT NULL REFERENCES journeys(id),
+  visit_id   INTEGER NOT NULL REFERENCES visits(id),
+  url_id     INTEGER NOT NULL REFERENCES urls(id),
+  time_ms    INTEGER NOT NULL,
+  transition TEXT,
+  ord        INTEGER NOT NULL              -- position within the journey
+);
+CREATE INDEX IF NOT EXISTS idx_journey_visits_jid ON journey_visits(journey_id, ord);
+
 -- Simple key/value for app settings (e.g. AI provider, allowlist).
 CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,

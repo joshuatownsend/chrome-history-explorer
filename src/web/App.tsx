@@ -5,12 +5,13 @@ import { HistoryTable } from "./components/HistoryTable.tsx";
 import { DomainView } from "./components/DomainView.tsx";
 import { SearchView } from "./components/SearchView.tsx";
 import { SessionsView } from "./components/SessionsView.tsx";
+import { JourneysView } from "./components/JourneysView.tsx";
 import { LivenessControls } from "./components/LivenessControls.tsx";
 import { Dashboard } from "./components/Dashboard.tsx";
 import { SettingsView } from "./components/SettingsView.tsx";
 import { ImportView } from "./components/ImportView.tsx";
 
-type View = "dashboard" | "search" | "list" | "domains" | "sessions" | "settings" | "import";
+type View = "dashboard" | "search" | "list" | "domains" | "journeys" | "sessions" | "settings" | "import";
 
 export function App() {
   const [view, setView] = useState<View>("dashboard");
@@ -56,6 +57,7 @@ export function App() {
     { id: "search", label: "Search" },
     { id: "domains", label: "By domain" },
     { id: "list", label: "All URLs" },
+    { id: "journeys", label: "Research Sessions" },
     { id: "sessions", label: "Sessions" },
     { id: "import", label: "Import" },
     { id: "settings", label: "Settings" },
@@ -96,7 +98,12 @@ export function App() {
 
       <main className="min-h-0 flex-1">
         {view === "dashboard" && (
-          <Dashboard onPickDomain={pickDomain} devices={devices} onLabelSaved={refreshDevices} />
+          <Dashboard
+            onPickDomain={pickDomain}
+            onOpenJourneys={() => setView("journeys")}
+            devices={devices}
+            onLabelSaved={refreshDevices}
+          />
         )}
         {view === "search" && (
           <SearchView
@@ -111,6 +118,9 @@ export function App() {
           <HistoryTable filters={filters} onPickDomain={pickDomain} threadcrumbEnabled={threadcrumbEnabled} />
         )}
         {view === "domains" && <DomainView filters={filters} onPickDomain={pickDomain} />}
+        {view === "journeys" && (
+          <JourneysView aiEnabled={aiSummarize} threadcrumbEnabled={threadcrumbEnabled} />
+        )}
         {view === "sessions" && <SessionsView />}
         {view === "import" && <ImportView onImported={refreshSources} />}
         {view === "settings" && <SettingsView />}

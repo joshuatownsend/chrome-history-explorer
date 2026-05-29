@@ -6,6 +6,8 @@ export interface AIProvider {
   canEmbed: boolean;
   /** One-paragraph summary of page text. */
   summarize(title: string, text: string): Promise<string>;
+  /** Generic single-turn completion with a caller-supplied system prompt. */
+  complete(system: string, user: string, maxTokens?: number): Promise<string>;
   /** Embed texts into vectors for semantic search. */
   embed(texts: string[]): Promise<number[][]>;
 }

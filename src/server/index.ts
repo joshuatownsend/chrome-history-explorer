@@ -13,6 +13,7 @@ import { enrich } from "./routes/enrich.ts";
 import { stats } from "./routes/stats.ts";
 import { ai } from "./routes/ai.ts";
 import { tree } from "./routes/tree.ts";
+import { journeys } from "./routes/journeys.ts";
 import { settings } from "./routes/settings.ts";
 import { importRoutes, sourcesRoute } from "./routes/import.ts";
 import { threadcrumb } from "./routes/threadcrumb.ts";
@@ -41,6 +42,7 @@ api.route("/enrich", enrich);
 api.route("/stats", stats);
 api.route("/ai", ai);
 api.route("/tree", tree);
+api.route("/journeys", journeys); // GET /api/journeys (+ /:id), POST /build, /:id/label
 api.route("/settings", settings);
 api.route("/sources", sourcesRoute); // GET /api/sources
 api.route("/import", importRoutes); // GET /api/import/detect, POST /api/import/run
