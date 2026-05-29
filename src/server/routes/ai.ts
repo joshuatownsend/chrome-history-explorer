@@ -95,12 +95,20 @@ ai.post("/embed", async (c) => {
         `SELECT id, url, title, is_private FROM urls WHERE is_private=0 ORDER BY visit_count DESC LIMIT ?`,
       )
       .all(Math.min(Math.max(body.n ?? 1000, 1), 5000));
+  } else if (body.scope === "all") {
+    // Full backfill — clustering/topic-trends need every public page embedded,
+    // not just the top N. Skips hidden + private; already-embedded are skipped below.
+    rows = db
+      .query<UrlMeta, []>(
+        `SELECT id, url, title, is_private FROM urls WHERE is_private=0 AND is_hidden=0 ORDER BY visit_count DESC`,
+      )
+      .all();
   } else if (body.scope === "domain" && body.domain) {
     rows = db
       .query<UrlMeta, [string]>(`SELECT id, url, title, is_private FROM urls WHERE is_private=0 AND domain=?`)
       .all(body.domain);
   } else {
-    return c.json({ error: "scope must be 'top' or 'domain'" }, 400);
+    return c.json({ error: "scope must be 'top', 'all', or 'domain'" }, 400);
   }
 
   // Skip ones already embedded.

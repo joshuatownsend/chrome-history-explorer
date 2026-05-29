@@ -15,3 +15,6 @@ local-history.json
 
 .remember/
 .debug/
+
+# CodeGraph local index (regenerable via `codegraph init`)
+.codegraph/
