@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { getDb } from "../db.ts";
 import { buildJourneys } from "../lib/journeys.ts";
 import { getProvider } from "../ai/index.ts";
+import { parseLabel } from "../lib/labels.ts";
 
 export const journeys = new Hono();
 
@@ -97,26 +98,6 @@ journeys.get("/:id", (c) => {
 
   return c.json({ journey, visits });
 });
-
-/** Title-case a label only when the model SHOUTED it back in all caps. */
-function tidyLabel(s: string): string {
-  const label = s.trim().replace(/^["']|["']$/g, "");
-  if (label && label === label.toUpperCase() && /[A-Z]/.test(label)) {
-    return label.toLowerCase().replace(/\b\w/g, (m) => m.toUpperCase());
-  }
-  return label;
-}
-
-/** Parse the LLM reply into a short title + one-line description. */
-function parseLabel(raw: string): { label: string; description: string } {
-  const text = raw.trim();
-  const clean = (d: string) => d.trim().replace(/\s+/g, " ");
-  const dash = text.match(/^(.{2,90}?)\s[—–-]\s(.+)$/s);
-  if (dash) return { label: tidyLabel(dash[1]), description: clean(dash[2]) };
-  const nl = text.indexOf("\n");
-  if (nl > 1) return { label: tidyLabel(text.slice(0, nl)), description: clean(text.slice(nl + 1)) };
-  return { label: tidyLabel(text.slice(0, 80)), description: clean(text) };
-}
 
 /** POST /api/journeys/:id/label { prefer? } — name a journey with one LLM call. */
 journeys.post("/:id/label", async (c) => {

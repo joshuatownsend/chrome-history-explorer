@@ -14,6 +14,8 @@ import { stats } from "./routes/stats.ts";
 import { ai } from "./routes/ai.ts";
 import { tree } from "./routes/tree.ts";
 import { journeys } from "./routes/journeys.ts";
+import { insights } from "./routes/insights.ts";
+import { clusters } from "./routes/clusters.ts";
 import { settings } from "./routes/settings.ts";
 import { importRoutes, sourcesRoute } from "./routes/import.ts";
 import { threadcrumb } from "./routes/threadcrumb.ts";
@@ -43,6 +45,8 @@ api.route("/stats", stats);
 api.route("/ai", ai);
 api.route("/tree", tree);
 api.route("/journeys", journeys); // GET /api/journeys (+ /:id), POST /build, /:id/label
+api.route("/insights", insights); // on-this-day, rediscovery, rhythm, recurring, open-loops, graveyard
+api.route("/clusters", clusters); // Interest Map: build / list / :id / trends
 api.route("/settings", settings);
 api.route("/sources", sourcesRoute); // GET /api/sources
 api.route("/import", importRoutes); // GET /api/import/detect, POST /api/import/run

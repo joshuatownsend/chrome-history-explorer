@@ -140,6 +140,26 @@ CREATE TABLE IF NOT EXISTS journey_visits (
 );
 CREATE INDEX IF NOT EXISTS idx_journey_visits_jid ON journey_visits(journey_id, ord);
 
+-- Semantic topic clusters (the "Interest Map"). Derived by lib/clusters.ts:
+-- k-means is trained on the top-N most-visited embedded pages, then EVERY
+-- embedded public page is assigned to its nearest centroid. Full rebuild.
+CREATE TABLE IF NOT EXISTS clusters (
+  id           INTEGER PRIMARY KEY,
+  label        TEXT,
+  description  TEXT,
+  size         INTEGER NOT NULL DEFAULT 0,  -- assigned member count
+  label_source TEXT,                        -- 'llm' | 'heuristic' | NULL
+  built_at     INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS cluster_members (
+  cluster_id INTEGER NOT NULL REFERENCES clusters(id),
+  url_id     INTEGER NOT NULL REFERENCES urls(id),
+  distance   REAL                           -- cosine distance to centroid (asc = representative)
+);
+CREATE INDEX IF NOT EXISTS idx_cluster_members_cid ON cluster_members(cluster_id, distance);
+CREATE INDEX IF NOT EXISTS idx_cluster_members_uid ON cluster_members(url_id);
+
 -- Simple key/value for app settings (e.g. AI provider, allowlist).
 CREATE TABLE IF NOT EXISTS settings (
   key   TEXT PRIMARY KEY,
