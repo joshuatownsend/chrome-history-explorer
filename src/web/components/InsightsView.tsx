@@ -179,15 +179,21 @@ export function InsightsView({ threadcrumbEnabled }: { threadcrumbEnabled: boole
               {openLoops.slice(0, 8).map((o) => (
                 <li key={o.id} className="flex items-start gap-2">
                   <div className="min-w-0 flex-1">
-                    <a
-                      href={o.entry_url ?? "#"}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="block truncate text-neutral-200 hover:text-blue-400"
-                      title={o.description ?? undefined}
-                    >
-                      {o.label || "(untitled)"}
-                    </a>
+                    {o.entry_url ? (
+                      <a
+                        href={o.entry_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="block truncate text-neutral-200 hover:text-blue-400"
+                        title={o.description ?? undefined}
+                      >
+                        {o.label || "(untitled)"}
+                      </a>
+                    ) : (
+                      <span className="block truncate text-neutral-200" title={o.description ?? undefined}>
+                        {o.label || "(untitled)"}
+                      </span>
+                    )}
                     <span className="text-xs text-neutral-600">
                       {o.url_count} pages · {fmtRelative(o.end_ms)}
                     </span>

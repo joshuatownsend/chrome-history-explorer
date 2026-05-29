@@ -144,6 +144,7 @@ insights.get("/open-loops", (c) => {
          FROM journeys j
          LEFT JOIN urls eu ON eu.id = j.entry_url_id
         WHERE j.url_count >= 5 AND j.end_ms < $cutoff
+          AND COALESCE(eu.is_hidden, 0) = 0   -- don't resurface a now-ignored entry page
         ORDER BY j.url_count DESC, j.link_hops DESC
         LIMIT $limit`,
     )

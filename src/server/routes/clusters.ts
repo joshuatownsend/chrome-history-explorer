@@ -72,6 +72,7 @@ clusters.get("/", (c) => {
                  SELECT u.domain AS d, COUNT(*) n FROM cluster_members cm
                  JOIN urls u ON u.id = cm.url_id
                  WHERE cm.cluster_id = cl.id AND u.domain IS NOT NULL
+                   AND u.is_hidden = 0 AND u.is_private = 0
                  GROUP BY u.domain ORDER BY n DESC LIMIT 3)) AS top_domains
          FROM clusters cl
         ORDER BY cl.size DESC`,
@@ -93,11 +94,15 @@ clusters.get("/trends", (c) => {
 
   const rows = db
     .query<{ cluster_id: number; recent: number; prior: number }, { $recent: number; $prior: number }>(
+      // Join urls and re-check flags: privacy/ignore rules may have changed since
+      // the map was built, and cluster_members is not recomputed until rebuild.
       `SELECT cm.cluster_id,
               SUM(CASE WHEN v.time_ms >= $recent THEN 1 ELSE 0 END) AS recent,
               SUM(CASE WHEN v.time_ms >= $prior AND v.time_ms < $recent THEN 1 ELSE 0 END) AS prior
          FROM cluster_members cm
+         JOIN urls u ON u.id = cm.url_id
          JOIN visits v ON v.url_id = cm.url_id
+        WHERE u.is_hidden = 0 AND u.is_private = 0
         GROUP BY cm.cluster_id`,
     )
     .all({ $recent: recentFrom, $prior: priorFrom });
@@ -147,7 +152,7 @@ clusters.get("/:id", (c) => {
          FROM cluster_members cm
          JOIN urls u ON u.id = cm.url_id
          LEFT JOIN enrichments e ON e.url_id = u.id AND e.kind = 'liveness'
-        WHERE cm.cluster_id = $id
+        WHERE cm.cluster_id = $id AND u.is_hidden = 0 AND u.is_private = 0
         ORDER BY cm.distance ASC
         LIMIT $limit OFFSET $offset`,
     )
