@@ -96,7 +96,7 @@ export function ImportView({ onImported }: { onImported: () => void }) {
             <button
               onClick={run}
               disabled={running || selected.size === 0}
-              className="rounded bg-blue-700 px-4 py-1.5 text-sm text-white hover:bg-blue-600 disabled:opacity-50"
+              className="rounded-sm bg-blue-700 px-4 py-1.5 text-sm text-white hover:bg-blue-600 disabled:opacity-50"
             >
               {running ? "Importing…" : `Import ${selected.size || ""} selected`}
             </button>

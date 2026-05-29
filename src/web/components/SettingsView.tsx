@@ -61,7 +61,7 @@ export function SettingsView() {
           rows={6}
           spellCheck={false}
           placeholder={"intranet.example.com\n*.myhomelab.net\n100.64.*"}
-          className="w-full rounded bg-neutral-900 px-3 py-2 font-mono text-sm text-neutral-200 ring-1 ring-neutral-700 focus:ring-blue-600"
+          className="w-full rounded-sm bg-neutral-900 px-3 py-2 font-mono text-sm text-neutral-200 ring-1 ring-neutral-700 focus:ring-blue-600"
         />
       </section>
 
@@ -76,7 +76,7 @@ export function SettingsView() {
           rows={6}
           spellCheck={false}
           placeholder={"webmail.example.com\n*.bank.com"}
-          className="w-full rounded bg-neutral-900 px-3 py-2 font-mono text-sm text-neutral-200 ring-1 ring-neutral-700 focus:ring-blue-600"
+          className="w-full rounded-sm bg-neutral-900 px-3 py-2 font-mono text-sm text-neutral-200 ring-1 ring-neutral-700 focus:ring-blue-600"
         />
       </section>
 
@@ -84,7 +84,7 @@ export function SettingsView() {
         <button
           onClick={save}
           disabled={saving}
-          className="rounded bg-blue-700 px-4 py-1.5 text-sm text-white hover:bg-blue-600 disabled:opacity-50"
+          className="rounded-sm bg-blue-700 px-4 py-1.5 text-sm text-white hover:bg-blue-600 disabled:opacity-50"
         >
           {saving ? "Applying…" : "Save & apply"}
         </button>

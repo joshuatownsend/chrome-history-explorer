@@ -6,12 +6,12 @@ import { LivenessBadge } from "./LivenessBadge.tsx";
 function TrendBadge({ t }: { t?: TrendRow }) {
   if (!t) return null;
   if (t.pct == null)
-    return <span className="rounded bg-emerald-900/50 px-1.5 py-0.5 text-[11px] text-emerald-300">new</span>;
+    return <span className="rounded-sm bg-emerald-900/50 px-1.5 py-0.5 text-[11px] text-emerald-300">new</span>;
   if (t.pct === 0) return null;
   const up = t.pct > 0;
   return (
     <span
-      className={`rounded px-1.5 py-0.5 text-[11px] ${up ? "bg-green-900/50 text-green-300" : "bg-red-900/50 text-red-300"}`}
+      className={`rounded-sm px-1.5 py-0.5 text-[11px] ${up ? "bg-green-900/50 text-green-300" : "bg-red-900/50 text-red-300"}`}
       title={`${t.recent} visits last 90d vs ${t.prior} prior`}
     >
       {up ? "↑" : "↓"} {Math.abs(t.pct)}%
@@ -50,7 +50,7 @@ function ClusterCard({
           {c.description && <div className="truncate text-xs text-neutral-500">{c.description}</div>}
           {c.top_domains && <div className="mt-0.5 truncate text-[11px] text-neutral-600">{c.top_domains}</div>}
           <div className="mt-1.5 flex items-center gap-2">
-            <div className="h-1.5 flex-1 overflow-hidden rounded bg-neutral-800">
+            <div className="h-1.5 flex-1 overflow-hidden rounded-sm bg-neutral-800">
               <div className="h-full bg-blue-600/70" style={{ width: `${(c.size / max) * 100}%` }} />
             </div>
             <span className="shrink-0 tabular-nums text-xs text-neutral-500">{fmtNum(c.size)}</span>
@@ -142,7 +142,7 @@ export function InterestMapView({
           <button
             onClick={embedAll}
             disabled={busy !== ""}
-            className="rounded bg-neutral-800 px-2.5 py-1 text-neutral-200 hover:bg-neutral-700 disabled:opacity-50"
+            className="rounded-sm bg-neutral-800 px-2.5 py-1 text-neutral-200 hover:bg-neutral-700 disabled:opacity-50"
             title="Embed every public page so the map covers your whole history (uses your OpenAI key)"
           >
             {busy === "embed" ? "embedding…" : "Embed all pages"}
@@ -151,7 +151,7 @@ export function InterestMapView({
         <button
           onClick={build}
           disabled={busy !== ""}
-          className="rounded bg-blue-700 px-2.5 py-1 text-white hover:bg-blue-600 disabled:opacity-50"
+          className="rounded-sm bg-blue-700 px-2.5 py-1 text-white hover:bg-blue-600 disabled:opacity-50"
         >
           {busy === "build" ? "building…" : clusters.length ? "Rebuild map" : "Build map"}
         </button>
@@ -178,7 +178,7 @@ export function InterestMapView({
       </div>
 
       {toast && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded bg-neutral-800 px-4 py-2 text-sm text-neutral-100 shadow-lg ring-1 ring-neutral-700">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-sm bg-neutral-800 px-4 py-2 text-sm text-neutral-100 shadow-lg ring-1 ring-neutral-700">
           {toast}
         </div>
       )}

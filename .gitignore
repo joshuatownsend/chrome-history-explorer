@@ -18,3 +18,4 @@ local-history.json
 
 # CodeGraph local index (regenerable via `codegraph init`)
 .codegraph/
+.playwright-mcp/

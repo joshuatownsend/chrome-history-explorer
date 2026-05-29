@@ -83,7 +83,7 @@ export function App() {
         <h1 className="text-sm font-semibold tracking-tight text-neutral-100">
           Chrome History Explorer
         </h1>
-        <nav className="flex gap-1 rounded bg-neutral-800 p-0.5 text-sm">
+        <nav className="flex gap-1 rounded-sm bg-neutral-800 p-0.5 text-sm">
           {VIEWS.map((v) => (
             <button
               key={v.id}

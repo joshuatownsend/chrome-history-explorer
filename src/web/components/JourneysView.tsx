@@ -16,7 +16,7 @@ function fmtDuration(ms: number): string {
 
 function Pill({ children }: { children: React.ReactNode }) {
   return (
-    <span className="rounded bg-neutral-800 px-1.5 py-0.5 text-xs text-neutral-400">{children}</span>
+    <span className="rounded-sm bg-neutral-800 px-1.5 py-0.5 text-xs text-neutral-400">{children}</span>
   );
 }
 
@@ -76,7 +76,7 @@ function JourneyCard({
             <Pill>{fmtDuration(j.end_ms - j.start_ms)}</Pill>
             {j.link_hops > 0 && (
               <span
-                className="rounded bg-purple-900/40 px-1.5 py-0.5 text-xs text-purple-300"
+                className="rounded-sm bg-purple-900/40 px-1.5 py-0.5 text-xs text-purple-300"
                 title="links followed within the session — how deep the rabbit hole went"
               >
                 🐇 {fmtNum(j.link_hops)} hops
@@ -188,14 +188,14 @@ export function JourneysView({
             max={240}
             value={gap}
             onChange={(e) => setGap(Math.max(5, Math.min(240, Number(e.target.value) || 30)))}
-            className="w-14 rounded bg-neutral-800 px-1.5 py-0.5 text-neutral-200 outline-none focus:ring-1 focus:ring-blue-600"
+            className="w-14 rounded-sm bg-neutral-800 px-1.5 py-0.5 text-neutral-200 outline-hidden focus:ring-1 focus:ring-blue-600"
           />
           min
         </label>
         <button
           onClick={build}
           disabled={building}
-          className="rounded bg-blue-700 px-2.5 py-1 text-white hover:bg-blue-600 disabled:opacity-50"
+          className="rounded-sm bg-blue-700 px-2.5 py-1 text-white hover:bg-blue-600 disabled:opacity-50"
         >
           {building ? "building…" : total ? "Rebuild" : "Build"}
         </button>

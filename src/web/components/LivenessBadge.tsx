@@ -36,7 +36,7 @@ export function LivenessBadge({ status, resultJson }: Props) {
 
   return (
     <span className="inline-flex items-center gap-1">
-      <span className={`rounded px-1.5 py-0.5 text-xs ring-1 ${cls}`} title={code ? `HTTP ${code}` : state}>
+      <span className={`rounded-sm px-1.5 py-0.5 text-xs ring-1 ${cls}`} title={code ? `HTTP ${code}` : state}>
         {state}
       </span>
       {state === "dead" && archived && (
