@@ -146,6 +146,8 @@ Without a key, every other feature still works; the AI controls simply stay disa
 | Variable | Default | Purpose |
 |----------|---------|---------|
 | `API_PORT` | `8787` | Backend port (Vite dev proxy targets this too). |
+| `API_HOST` | `127.0.0.1` | Bind address. Loopback-only by default; set to a LAN IP / `0.0.0.0` to expose it (read [Security](#security) first). |
+| `API_ALLOWED_HOSTS` | _(empty)_ | Comma-separated extra hostnames the rebinding/CSRF guard should trust when serving beyond loopback (e.g. `history.lan,192.168.1.50`). |
 | `HISTORY_DB` | `data/history.db` | SQLite database path. |
 | `OPENAI_MODEL` | `gpt-4o-mini` | Chat model for summaries. |
 | `OPENAI_EMBED_MODEL` | `text-embedding-3-small` | Embedding model for semantic search. |
@@ -196,6 +198,19 @@ Pattern syntax (matched against the hostname, one per line):
 Saving recomputes the flags across every stored URL. Rules persist in the database and are
 re-applied automatically after each `ingest`, so re-importing a fresh Takeout keeps them.
 Nothing beyond `localhost`/LAN is hardcoded — all other privacy is configured here at runtime.
+
+## Security
+
+This is a **loopback-only, single-user** tool with no login — its security model
+is network isolation. The server binds to `127.0.0.1` by default, and all `/api`
+requests are checked against DNS-rebinding and CSRF (so a malicious website you
+visit can't drive the local API). Provider/ThreadCrumb keys stay server-side;
+private/hidden hosts are never sent to liveness, AI, or ThreadCrumb.
+
+If you set `API_HOST` to expose it on a LAN, you widen the trust boundary —
+add your hostnames to `API_ALLOWED_HOSTS` and front it with auth (or a VPN/SSH
+tunnel). See [SECURITY.md](SECURITY.md) for the full threat model and how to
+report a vulnerability.
 
 ## Tech stack
 
@@ -251,3 +266,7 @@ add it to the registry and (optionally) profile detection.
 ```bash
 bun test    # adapter epoch/transition, journey detection, and clustering tests
 ```
+
+## License
+
+[MIT](LICENSE) © Josh Townsend

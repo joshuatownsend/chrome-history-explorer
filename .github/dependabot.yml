@@ -1,0 +1,23 @@
+version: 2
+updates:
+  # JavaScript/TypeScript dependencies (Bun text lockfile).
+  - package-ecosystem: "bun"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      # Batch low-risk updates into one PR to cut review noise.
+      dev-dependencies:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
+      production-minor-patch:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+
+  # Keep the GitHub Actions used in CI up to date.
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5

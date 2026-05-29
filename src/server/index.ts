@@ -20,8 +20,20 @@ import { settings } from "./routes/settings.ts";
 import { importRoutes, sourcesRoute } from "./routes/import.ts";
 import { threadcrumb } from "./routes/threadcrumb.ts";
 import { resetStuckJobs } from "./lib/jobs.ts";
+import { localGuard } from "./lib/security.ts";
 
 const PORT = Number(process.env.API_PORT ?? 8787);
+// Bind loopback by default — Bun.serve would otherwise listen on 0.0.0.0 (every
+// interface), exposing a no-auth tool with side effects (open tabs, import local
+// profiles) to the whole LAN. Set API_HOST to opt into LAN/remote serving.
+const HOST = process.env.API_HOST?.trim() || "127.0.0.1";
+// Extra hostnames the rebinding/CSRF guard should trust when serving beyond
+// loopback (e.g. "history.lan,192.168.1.50"). Loopback names are always trusted.
+const ALLOWED_HOSTS = (process.env.API_ALLOWED_HOSTS ?? "")
+  .split(",")
+  .map((h) => h.trim())
+  .filter(Boolean);
+if (HOST !== "127.0.0.1" && HOST !== "localhost") ALLOWED_HOSTS.push(HOST);
 
 // Fail fast with a helpful message if the DB hasn't been built yet.
 const db = getDb();
@@ -34,6 +46,7 @@ resetStuckJobs(db); // recover any liveness jobs interrupted by a previous shutd
 const app = new Hono();
 
 const api = new Hono();
+api.use("*", localGuard(ALLOWED_HOSTS)); // reject DNS-rebinding / cross-origin (CSRF) requests
 api.route("/urls", urls);
 api.route("/domains", domains);
 api.route("/devices", devices);
@@ -62,5 +75,5 @@ if (existsSync(DIST)) {
   app.get("/*", serveStatic({ path: "./dist/web/index.html" }));
 }
 
-console.log(`API listening on http://localhost:${PORT}`);
-export default { port: PORT, fetch: app.fetch, idleTimeout: 60 };
+console.log(`API listening on http://${HOST}:${PORT}`);
+export default { port: PORT, hostname: HOST, fetch: app.fetch, idleTimeout: 60 };
