@@ -9,6 +9,7 @@
  * new import invalidates them, so there is no incremental path to maintain.
  */
 import type { Database } from "bun:sqlite";
+import { topDomain } from "./labels.ts";
 
 export interface BuildOpts {
   gapMinutes?: number; // idle gap that ends a burst (default 30)
@@ -39,17 +40,14 @@ function streamKey(r: VisitRow): string {
 
 /** Title for a journey when no LLM label has been generated. */
 function heuristicLabel(group: VisitRow[]): { label: string; description: string } {
-  const urls = new Set(group.map((g) => g.url_id));
-  const domains = new Map<string, number>();
-  for (const g of group) if (g.domain) domains.set(g.domain, (domains.get(g.domain) ?? 0) + 1);
-  const topDomain = [...domains.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+  const urlCount = new Set(group.map((g) => g.url_id)).size;
+  const domainCount = new Set(group.map((g) => g.domain).filter(Boolean)).size;
 
   // Prefer the entry page's title; fall back to the busiest domain.
   const entryTitle = group[0]?.title?.trim();
-  const label = (entryTitle && entryTitle.length > 2 ? entryTitle : topDomain) ?? "(untitled session)";
+  const label = (entryTitle && entryTitle.length > 2 ? entryTitle : topDomain(group)) ?? "(untitled session)";
 
-  const nDomains = domains.size;
-  const description = `${urls.size} page${urls.size === 1 ? "" : "s"} · ${nDomains} site${nDomains === 1 ? "" : "s"}`;
+  const description = `${urlCount} page${urlCount === 1 ? "" : "s"} · ${domainCount} site${domainCount === 1 ? "" : "s"}`;
   return { label: label.slice(0, 120), description };
 }
 

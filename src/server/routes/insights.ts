@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { getDb } from "../db.ts";
+import { clampInt } from "../lib/query.ts";
 
 export const insights = new Hono();
 
@@ -36,8 +37,8 @@ insights.get("/on-this-day", (c) => {
 insights.get("/rediscovery", (c) => {
   const db = getDb();
   const sp = new URL(c.req.url).searchParams;
-  const days = Math.min(Math.max(Number(sp.get("days") ?? 90), 7), 3650);
-  const limit = Math.min(Math.max(Number(sp.get("limit") ?? 24), 1), 100);
+  const days = clampInt(sp.get("days"), 90, 7, 3650);
+  const limit = clampInt(sp.get("limit"), 24, 1, 100);
   const cutoff = Date.now() - days * DAY;
   const rows = db
     .query(
@@ -94,7 +95,7 @@ insights.get("/rhythm", (c) => {
  */
 insights.get("/recurring", (c) => {
   const db = getDb();
-  const limit = Math.min(Math.max(Number(new URL(c.req.url).searchParams.get("limit") ?? 24), 1), 100);
+  const limit = clampInt(new URL(c.req.url).searchParams.get("limit"), 24, 1, 100);
   const rows = db
     .query<
       { domain: string; days: number; first: number; last: number; visits: number },
@@ -134,8 +135,8 @@ insights.get("/recurring", (c) => {
 insights.get("/open-loops", (c) => {
   const db = getDb();
   const sp = new URL(c.req.url).searchParams;
-  const days = Math.min(Math.max(Number(sp.get("days") ?? 14), 1), 3650);
-  const limit = Math.min(Math.max(Number(sp.get("limit") ?? 24), 1), 100);
+  const days = clampInt(sp.get("days"), 14, 1, 3650);
+  const limit = clampInt(sp.get("limit"), 24, 1, 100);
   const cutoff = Date.now() - days * DAY;
   const rows = db
     .query(
@@ -158,7 +159,7 @@ insights.get("/open-loops", (c) => {
  */
 insights.get("/graveyard", (c) => {
   const db = getDb();
-  const limit = Math.min(Math.max(Number(new URL(c.req.url).searchParams.get("limit") ?? 30), 1), 100);
+  const limit = clampInt(new URL(c.req.url).searchParams.get("limit"), 30, 1, 100);
   const rows = db
     .query(
       `SELECT u.id, u.url, u.title, u.domain, u.visit_count, u.last_visited,

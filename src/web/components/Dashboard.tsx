@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { api, type DeviceRow, type JourneyRow, type OnThisDayRow, type Stats } from "../api.ts";
 import { fmtDate, fmtNum } from "../lib/format.ts";
+import { Card } from "./Card.tsx";
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
@@ -30,15 +31,6 @@ function DeviceLabelRow({ device, onSaved }: { device: DeviceRow; onSaved: () =>
       {saved && <span className="text-xs text-green-400">saved</span>}
       <span className="shrink-0 tabular-nums text-neutral-500">{fmtNum(device.visit_count)}</span>
     </li>
-  );
-}
-
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div className="rounded-lg border border-neutral-800 bg-neutral-900/40 p-4">
-      <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-neutral-500">{title}</h2>
-      {children}
-    </div>
   );
 }
 

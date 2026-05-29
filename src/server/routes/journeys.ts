@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { getDb } from "../db.ts";
 import { buildJourneys } from "../lib/journeys.ts";
 import { getProvider } from "../ai/index.ts";
-import { parseLabel } from "../lib/labels.ts";
+import { parseLabel, representativeTitles } from "../lib/labels.ts";
+import { clampInt } from "../lib/query.ts";
 
 export const journeys = new Hono();
 
@@ -26,7 +27,7 @@ journeys.post("/build", async (c) => {
 journeys.get("/", (c) => {
   const db = getDb();
   const sp = new URL(c.req.url).searchParams;
-  const limit = Math.min(Math.max(Number(sp.get("limit") ?? 50), 1), 200);
+  const limit = clampInt(sp.get("limit"), 50, 1, 200);
   const offset = Math.max(Number(sp.get("offset") ?? 0), 0);
 
   const clauses: string[] = [];
@@ -129,17 +130,7 @@ journeys.post("/:id/label", async (c) => {
     )
     .all(id);
 
-  // Dedupe titles, cap to bound tokens.
-  const seen = new Set<string>();
-  const titles: string[] = [];
-  for (const p of pages) {
-    const t = (p.title || p.domain || "").trim();
-    if (t && !seen.has(t)) {
-      seen.add(t);
-      titles.push(t);
-      if (titles.length >= 40) break;
-    }
-  }
+  const titles = representativeTitles(pages, 40); // dedupe + cap to bound tokens
   if (!titles.length) {
     return c.json({ label: journey.label, description: journey.description, label_source: "heuristic" });
   }
