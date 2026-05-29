@@ -1,10 +1,31 @@
-import { describe, expect, test } from "bun:test";
+import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { Database } from "bun:sqlite";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { buildClusters } from "../src/server/lib/clusters.ts";
 
 const SCHEMA = readFileSync(join(import.meta.dir, "../src/server/schema.sql"), "utf8");
+
+// buildClusters uses Math.random() for k-means++ init/reseeding. Pin it to a
+// seeded PRNG so these assertions are fully deterministic, not just relying on
+// well-separated fixtures. Restored after each test.
+function mulberry32(seed: number): () => number {
+  let a = seed;
+  return () => {
+    a |= 0;
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+const realRandom = Math.random;
+beforeEach(() => {
+  Math.random = mulberry32(0x1234abcd);
+});
+afterEach(() => {
+  Math.random = realRandom;
+});
 
 function newDb(): Database {
   const db = new Database(":memory:");
