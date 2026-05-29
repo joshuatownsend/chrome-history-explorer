@@ -12,7 +12,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
 
       - uses: oven-sh/setup-bun@v2
         with:
@@ -36,7 +36,7 @@ jobs:
       contents: read
       pull-requests: read # gitleaks lists PR commits via the API on pull_request events
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0 # full history so gitleaks scans every commit, not just HEAD
 
