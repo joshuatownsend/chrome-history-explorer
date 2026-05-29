@@ -4,7 +4,9 @@ A **local-first** web app for exploring your browser history — from a Google T
 **or directly from local browser profiles** (Chrome, Edge, Brave, Vivaldi, Opera, Firefox,
 and Safari). Browse, sort, filter, and full-text search tens of thousands of visits; group
 by parent domain; reopen saved tab sessions; check which links are still alive (vs
-dead/blocked); and — optionally — summarize pages and search semantically with AI.
+dead/blocked); reconstruct the research sessions and rabbit holes you fell into; surface
+memories, routines, and trends; map your interests into topics; and — optionally —
+summarize pages, search semantically, and name it all with AI.
 
 Multiple sources merge into one database and dedupe by URL + time, so you can combine a
 Takeout export with several local browsers without double-counting.
@@ -27,17 +29,31 @@ treat as private or hide entirely (see [Privacy & ignore rules](#privacy--ignore
   date/device/domain facets.
 - **Sessions** — your saved tab windows with their navigation history; reopen a single
   tab or a whole window in your default browser (validated, capped at 50).
+- **Research Sessions** — reconstructs your "rabbit holes" by detecting bursts of browsing
+  with no long pause (per device), showing each ordered page trail and how deep it went
+  (link-transition hops). Name any session with one AI call, or by a heuristic if no key.
+- **Insights** — *On This Day* (what you browsed on this date in past years), *Forgotten
+  Gems* (heavily-visited pages you haven't returned to in months), *Your Rhythm* (night-owl
+  vs work-hours, peak hour, deepest rabbit holes), *Your Routine* (sites you return to on a
+  daily/weekly/monthly cadence), *Pick Back Up* (stalled research sessions → ThreadCrumb),
+  and a dead-link *Graveyard* with archive links.
+- **Interest Map** — clusters your history into named topics *by meaning* (k-means over
+  embeddings, each cluster labeled by AI), with rising/declining **trend** indicators
+  (last 90 days vs the prior 90) so you can see which interests are heating up.
 - **Liveness checking** — lazy as you scroll, plus scoped batches ("top 500", "last 30
   days", "this domain"). Classifies `live` / `dead` / `blocked` / `rate-limited` /
   `error`, with a Wayback Machine fallback for dead links.
-- **AI (optional, pluggable)** — on-demand page summaries and semantic search via
-  embeddings. Works with Anthropic (Claude) and/or OpenAI.
+- **AI (optional, pluggable)** — on-demand page summaries, semantic search, research-session
+  and topic naming, all via Anthropic (Claude) and/or OpenAI. Embeddings (OpenAI) power
+  semantic search and the Interest Map.
 - **Send to ThreadCrumb (optional)** — one-click forward a public history link to a
   [ThreadCrumb](https://threadcrumb.io) intent inbox; private/hidden URLs are refused.
-- **Insights dashboard** — totals, browsing by hour/day-of-week, top domains,
-  most-revisited pages, liveness rollup, and per-device labeling.
+- **Dashboard** — totals, browsing by hour/day-of-week, top domains, most-revisited pages,
+  liveness rollup, per-device labeling, plus *On This Day* and *deepest rabbit hole* cards.
 - **Privacy & ignore rules** — define your own host patterns to treat as private
-  (skipped from liveness/AI) or hide from the app entirely.
+  (skipped from liveness/AI) or hide from the app entirely. Private/hidden pages are
+  filtered out of every derived view — sessions, insights, and clusters — at read time,
+  so changing a rule never resurfaces suppressed history.
 
 ## Prerequisites
 
@@ -117,6 +133,13 @@ Without a key, every other feature still works; the AI controls simply stay disa
 - **Semantic search** needs embeddings built first. From the app, build them for a scope
   (e.g. top URLs), then toggle "Semantic search" in the Search view. Embeddings persist
   in the database, so this is a one-time cost per URL.
+- **Research Sessions** name themselves heuristically; click "✨ name this" on any session
+  to get a concise AI title and one-line summary instead.
+- **Interest Map** clusters your history by meaning. Click **Build map** to group the
+  already-embedded pages into topics (each named by AI, or a top-domain heuristic without a
+  key). For full-history coverage, click **Embed all pages** first to backfill embeddings
+  across every public page, then **Rebuild map**. Only non-private, non-hidden pages are
+  ever embedded, clustered, or sent to a provider.
 
 ### Optional environment variables
 
@@ -134,7 +157,8 @@ Without a key, every other feature still works; the AI controls simply stay disa
 
 If you use [ThreadCrumb](https://threadcrumb.io) — an "intent inbox" for links you
 mean to come back to — each public history row gets a **🧵 ThreadCrumb** button (in
-Search and the All-URLs table) that forwards the link to your inbox.
+Search, the All-URLs table, Research Sessions, and the *Pick Back Up* insight) that
+forwards the link to your inbox.
 
 Setup:
 
@@ -190,14 +214,19 @@ src/
     lib/
       load.ts           source-agnostic loader (NormalizedVisit -> rows) + finalize
       sources/          adapters: takeout, chromium, firefox, safari + detect + registry
+      journeys.ts       visit-burst detection (Research Sessions)
+      clusters.ts       k-means topic clustering (Interest Map)
+      labels.ts         shared LLM label parsing (journeys + clusters)
       …                 domain/privacy, user rules, job queue, liveness, page extraction
     ai/                 pluggable provider abstraction (anthropic, openai)
-    routes/             urls, domains, devices, search, sessions, open, enrich,
-                        stats, ai, tree, settings, import (+ sources)
+    routes/             urls, domains, devices, search, sessions, open, enrich, stats,
+                        ai, tree, journeys, insights, clusters, settings, import (+ sources)
   web/
-    App.tsx             view shell (Dashboard / Search / By domain / All URLs / Sessions / Import / Settings)
+    App.tsx             view shell (Dashboard / Search / By domain / All URLs /
+                        Research Sessions / Insights / Interest Map / Sessions / Import / Settings)
     api.ts              typed fetch client
-    components/         table, domain/tree views, sessions, dashboard, import, settings, filters, badges
+    components/         table, domain/tree views, sessions, journeys, insights, interest map,
+                        dashboard, import, settings, filters, badges
 test/
   adapters.test.ts      fixture-based epoch/transition tests per browser adapter (bun test)
 ```
