@@ -229,6 +229,8 @@ src/
                         dashboard, import, settings, filters, badges
 test/
   adapters.test.ts      fixture-based epoch/transition tests per browser adapter (bun test)
+  journeys.test.ts      visit-burst detection (gap/partition/min-pages/hops/privacy)
+  clusters.test.ts      k-means clustering (assignment, empty-drop, privacy, bounding)
 ```
 
 Adding a browser source is one file: implement `HistorySource` in `src/server/lib/sources/`,
@@ -247,5 +249,5 @@ add it to the registry and (optionally) profile detection.
 ## Tests
 
 ```bash
-bun test    # fixture-based adapter epoch/transition tests
+bun test    # adapter epoch/transition, journey detection, and clustering tests
 ```
