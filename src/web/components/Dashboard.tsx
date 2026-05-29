@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { api, type DeviceRow, type JourneyRow, type Stats } from "../api.ts";
+import { api, type DeviceRow, type JourneyRow, type OnThisDayRow, type Stats } from "../api.ts";
 import { fmtDate, fmtNum } from "../lib/format.ts";
 
 const DOW = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -74,19 +74,23 @@ function Bars({ data, label }: { data: { k: string; v: number }[]; label?: (k: s
 export function Dashboard({
   onPickDomain,
   onOpenJourneys,
+  onOpenInsights,
   devices,
   onLabelSaved,
 }: {
   onPickDomain: (d: string) => void;
   onOpenJourneys: () => void;
+  onOpenInsights: () => void;
   devices: DeviceRow[];
   onLabelSaved: () => void;
 }) {
   const [s, setS] = useState<Stats | null>(null);
   const [journeys, setJourneys] = useState<JourneyRow[]>([]);
+  const [onThisDay, setOnThisDay] = useState<OnThisDayRow[]>([]);
   useEffect(() => {
     api.stats().then(setS).catch(() => setS(null));
     api.journeys({ sort: "hops", limit: 6 }).then((r) => setJourneys(r.rows)).catch(() => setJourneys([]));
+    api.onThisDay().then((r) => setOnThisDay(r.rows)).catch(() => setOnThisDay([]));
   }, []);
   if (!s) return <div className="p-8 text-neutral-500">Loading insights…</div>;
 
@@ -106,6 +110,31 @@ export function Dashboard({
   return (
     <div className="h-full overflow-auto p-4">
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {onThisDay.length > 0 && (
+          <Card title="On this day — years ago">
+            <ol className="space-y-1 text-sm">
+              {onThisDay.slice(0, 6).map((r) => (
+                <li key={r.id} className="flex items-center gap-2">
+                  <span className="w-10 shrink-0 text-xs text-neutral-600">{r.yr}</span>
+                  <a
+                    href={r.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex-1 truncate text-neutral-200 hover:text-blue-400"
+                    title={r.url}
+                  >
+                    {r.is_private ? "🔒 " : ""}
+                    {r.title || r.domain || r.url}
+                  </a>
+                </li>
+              ))}
+            </ol>
+            <button onClick={onOpenInsights} className="mt-2 text-xs text-blue-400 hover:text-blue-300">
+              more insights →
+            </button>
+          </Card>
+        )}
+
         <Card title="Overview">
           <div className="grid grid-cols-2 gap-4">
             <Stat label="visits" value={fmtNum(s.totals.visits)} />

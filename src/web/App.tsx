@@ -6,12 +6,24 @@ import { DomainView } from "./components/DomainView.tsx";
 import { SearchView } from "./components/SearchView.tsx";
 import { SessionsView } from "./components/SessionsView.tsx";
 import { JourneysView } from "./components/JourneysView.tsx";
+import { InsightsView } from "./components/InsightsView.tsx";
+import { InterestMapView } from "./components/InterestMapView.tsx";
 import { LivenessControls } from "./components/LivenessControls.tsx";
 import { Dashboard } from "./components/Dashboard.tsx";
 import { SettingsView } from "./components/SettingsView.tsx";
 import { ImportView } from "./components/ImportView.tsx";
 
-type View = "dashboard" | "search" | "list" | "domains" | "journeys" | "sessions" | "settings" | "import";
+type View =
+  | "dashboard"
+  | "search"
+  | "list"
+  | "domains"
+  | "journeys"
+  | "insights"
+  | "map"
+  | "sessions"
+  | "settings"
+  | "import";
 
 export function App() {
   const [view, setView] = useState<View>("dashboard");
@@ -58,6 +70,8 @@ export function App() {
     { id: "domains", label: "By domain" },
     { id: "list", label: "All URLs" },
     { id: "journeys", label: "Research Sessions" },
+    { id: "insights", label: "Insights" },
+    { id: "map", label: "Interest Map" },
     { id: "sessions", label: "Sessions" },
     { id: "import", label: "Import" },
     { id: "settings", label: "Settings" },
@@ -101,6 +115,7 @@ export function App() {
           <Dashboard
             onPickDomain={pickDomain}
             onOpenJourneys={() => setView("journeys")}
+            onOpenInsights={() => setView("insights")}
             devices={devices}
             onLabelSaved={refreshDevices}
           />
@@ -121,6 +136,8 @@ export function App() {
         {view === "journeys" && (
           <JourneysView aiEnabled={aiSummarize} threadcrumbEnabled={threadcrumbEnabled} />
         )}
+        {view === "insights" && <InsightsView threadcrumbEnabled={threadcrumbEnabled} />}
+        {view === "map" && <InterestMapView embedEnabled={aiSemantic} />}
         {view === "sessions" && <SessionsView />}
         {view === "import" && <ImportView onImported={refreshSources} />}
         {view === "settings" && <SettingsView />}

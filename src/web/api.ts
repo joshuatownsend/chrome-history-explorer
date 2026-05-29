@@ -194,7 +194,7 @@ export const api = {
   aiSummariesFor: (ids: number[]) =>
     getJson<{ rows: { url_id: number; result_json: string }[] }>(`/ai/summary?ids=${ids.join(",")}`),
 
-  buildEmbeddings: (scope: "top" | "domain", opts: { n?: number; domain?: string }) =>
+  buildEmbeddings: (scope: "top" | "domain" | "all", opts: { n?: number; domain?: string } = {}) =>
     fetch(`/api/ai/embed`, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -277,7 +277,121 @@ export const api = {
           error?: string;
         }>,
     ),
+
+  // --- Insights (Primitive A) ---
+  onThisDay: () => getJson<{ rows: OnThisDayRow[] }>(`/insights/on-this-day`),
+  rediscovery: (days = 90, limit = 24) =>
+    getJson<{ rows: UrlRow[]; days: number }>(`/insights/rediscovery${qs({ days, limit })}`),
+  rhythm: () => getJson<Rhythm>(`/insights/rhythm`),
+  recurring: (limit = 24) => getJson<{ rows: RecurringRow[] }>(`/insights/recurring${qs({ limit })}`),
+  openLoops: (days = 14, limit = 24) =>
+    getJson<{ rows: OpenLoopRow[]; days: number }>(`/insights/open-loops${qs({ days, limit })}`),
+  graveyard: (limit = 30) => getJson<{ rows: GraveyardRow[] }>(`/insights/graveyard${qs({ limit })}`),
+
+  // --- Interest Map (Primitive B/C) ---
+  buildClusters: (opts: { k?: number; max?: number; prefer?: string } = {}) =>
+    fetch(`/api/clusters/build`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(opts),
+    }).then(
+      (r) =>
+        r.json() as Promise<{
+          clusters: number;
+          members: number;
+          embedded: number;
+          trained_on: number;
+          labeled: number;
+          note?: string;
+        }>,
+    ),
+  clusters: () => getJson<{ rows: ClusterRow[] }>(`/clusters`),
+  cluster: (id: number, limit = 100) =>
+    getJson<{ cluster: ClusterRow; members: ClusterMember[] }>(`/clusters/${id}${qs({ limit })}`),
+  clusterTrends: () => getJson<{ rows: TrendRow[]; recent_days: number }>(`/clusters/trends`),
 };
+
+export interface OnThisDayRow {
+  id: number;
+  url: string;
+  title: string | null;
+  domain: string | null;
+  is_private: number;
+  yr: number;
+  day_visits: number;
+  t: number;
+}
+
+export interface Rhythm {
+  peak_hour: number | null;
+  night_owl_share: number;
+  morning_share: number;
+  work_share: number;
+  total_visits: number;
+  journeys: { count: number; deepest_hops: number; longest_ms: number; avg_pages: number };
+}
+
+export interface RecurringRow {
+  domain: string;
+  days: number;
+  visits: number;
+  last: number;
+  cadence: string;
+  activeRecently: boolean;
+}
+
+export interface OpenLoopRow {
+  id: number;
+  label: string | null;
+  description: string | null;
+  url_count: number;
+  link_hops: number;
+  start_ms: number;
+  end_ms: number;
+  entry_url: string | null;
+  entry_title: string | null;
+  entry_private: number | null;
+}
+
+export interface GraveyardRow {
+  id: number;
+  url: string;
+  title: string | null;
+  domain: string | null;
+  visit_count: number;
+  last_visited: number | null;
+  result_json: string | null;
+}
+
+export interface ClusterRow {
+  id: number;
+  label: string | null;
+  description: string | null;
+  size: number;
+  label_source: string | null;
+  top_domains?: string | null;
+}
+
+export interface ClusterMember {
+  url_id: number;
+  url: string;
+  title: string | null;
+  domain: string | null;
+  is_private: number;
+  visit_count: number;
+  last_visited: number | null;
+  distance: number | null;
+  liveness: string | null;
+  liveness_json: string | null;
+}
+
+export interface TrendRow {
+  cluster_id: number;
+  label: string | null;
+  recent: number;
+  prior: number;
+  pct: number | null; // null = "new" (no prior-window activity)
+}
 
 export interface JourneyRow {
   id: number;
