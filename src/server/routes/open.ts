@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { getDb } from "../db.ts";
+import { isProfileLabel, launchArgs, resolveLaunchTarget } from "../lib/browsers.ts";
 
 export const open = new Hono();
 
@@ -16,11 +18,54 @@ function isOpenableUrl(raw: unknown): raw is string {
 }
 
 /**
- * Launch a URL in the OS default browser. The URL is passed as a literal argv
- * element (never interpolated into a shell string), so query strings with `&`
- * and other metacharacters cannot inject a command.
+ * The browser profile a URL was most often visited from, as a source label.
+ *
+ * Saved sessions come only from Takeout, which knows nothing about local profiles,
+ * so the provenance of the URL itself is the only signal available. Returns
+ * undefined (→ OS default browser) for anything unknown, including "takeout".
  */
-function launch(url: string): void {
+function dominantSource(url: string): string | undefined {
+  try {
+    const row = getDb()
+      .query<{ source: string }, [string]>(
+        `SELECT v.source
+           FROM visits v JOIN urls u ON u.id = v.url_id
+          WHERE u.url = ?
+          GROUP BY v.source
+          ORDER BY COUNT(*) DESC
+          LIMIT 1`,
+      )
+      .get(url);
+    return row?.source ?? undefined;
+  } catch {
+    return undefined; // never let a lookup failure block opening a tab
+  }
+}
+
+/**
+ * Launch a URL, preferring the browser profile it came from. The URL is passed as
+ * a literal argv element (never interpolated into a shell string), so query
+ * strings with `&` and other metacharacters cannot inject a command — that holds
+ * for both the profile-targeted path and the OS-default fallback below.
+ *
+ * `sourceLabel` is a visit's provenance label ("chrome:Profile 2"). Anything that
+ * doesn't resolve to an installed Chromium-family browser falls through to the OS
+ * default browser rather than failing: reopening a tab in the wrong profile is
+ * annoying, not reopening it at all is worse.
+ */
+function launch(url: string, sourceLabel?: string): void {
+  if (sourceLabel) {
+    const target = resolveLaunchTarget(sourceLabel);
+    if (target) {
+      try {
+        Bun.spawn(launchArgs(target, url), { stdout: "ignore", stderr: "ignore" });
+        return;
+      } catch {
+        // Executable vanished between resolution and spawn — fall through.
+      }
+    }
+  }
+
   if (process.platform === "win32") {
     // rundll32 hands the URL straight to the default protocol handler.
     Bun.spawn(["rundll32", "url.dll,FileProtocolHandler", url], { stdout: "ignore", stderr: "ignore" });
@@ -32,21 +77,26 @@ function launch(url: string): void {
 }
 
 /**
- * POST /api/open  { urls: string[] }
- * Opens up to MAX_BULK validated web URLs in the default browser. Note: the
- * privacy filter intentionally does NOT apply here — reopening a LAN tab like
+ * POST /api/open  { urls: string[], profile?: string }
+ * Opens up to MAX_BULK validated web URLs. With `profile` (a source label such as
+ * "chrome:Profile 2") the tabs land in that browser profile; without it, or if it
+ * can't be resolved, they go to the OS default browser. Note: the privacy filter
+ * intentionally does NOT apply here — reopening a LAN tab like
  * http://homeassistant.local is the whole point of this feature.
  */
 open.post("/", async (c) => {
-  const body = (await c.req.json().catch(() => ({}))) as { urls?: unknown };
+  const body = (await c.req.json().catch(() => ({}))) as { urls?: unknown; profile?: unknown };
   const list = Array.isArray(body.urls) ? body.urls : [];
   const valid = list.filter(isOpenableUrl);
+  // A malformed profile is ignored, not rejected — it degrades to the default browser.
+  const profile = isProfileLabel(body.profile) ? body.profile : undefined;
 
   if (valid.length === 0) return c.json({ opened: 0, rejected: list.length });
   if (valid.length > MAX_BULK) {
     return c.json({ error: `Refusing to open ${valid.length} tabs (max ${MAX_BULK}).` }, 400);
   }
 
-  for (const url of valid) launch(url);
+  // An explicit profile wins; otherwise infer each URL's own provenance.
+  for (const url of valid) launch(url, profile ?? dominantSource(url));
   return c.json({ opened: valid.length, rejected: list.length - valid.length });
 });
