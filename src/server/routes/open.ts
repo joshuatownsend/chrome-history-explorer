@@ -1,6 +1,11 @@
 import { Hono } from "hono";
 import { getDb } from "../db.ts";
-import { isProfileLabel, launchArgs, resolveLaunchTarget } from "../lib/browsers.ts";
+import {
+  isProfileLabel,
+  launchArgs,
+  pickLaunchableSource,
+  resolveLaunchTarget,
+} from "../lib/browsers.ts";
 
 export const open = new Hono();
 
@@ -18,25 +23,29 @@ function isOpenableUrl(raw: unknown): raw is string {
 }
 
 /**
- * The browser profile a URL was most often visited from, as a source label.
+ * The browser profile to reopen a URL in, inferred from where it was visited.
  *
  * Saved sessions come only from Takeout, which knows nothing about local profiles,
- * so the provenance of the URL itself is the only signal available. Returns
- * undefined (→ OS default browser) for anything unknown, including "takeout".
+ * so the URL's own provenance is the only signal available. Sources are ranked by
+ * visit count but filtered to those that can actually be launched — picking the
+ * single most frequent source would hand "takeout" back for almost every URL in a
+ * merged database (a Takeout export spans a year; local Chrome expires at ~90
+ * days), losing the Chrome profile that is sitting right behind it.
+ *
+ * Returns undefined (→ OS default browser) when nothing launchable is on record.
  */
-function dominantSource(url: string): string | undefined {
+function inferredProfile(url: string): string | undefined {
   try {
-    const row = getDb()
+    const rows = getDb()
       .query<{ source: string }, [string]>(
         `SELECT v.source
            FROM visits v JOIN urls u ON u.id = v.url_id
           WHERE u.url = ?
           GROUP BY v.source
-          ORDER BY COUNT(*) DESC
-          LIMIT 1`,
+          ORDER BY COUNT(*) DESC`,
       )
-      .get(url);
-    return row?.source ?? undefined;
+      .all(url);
+    return pickLaunchableSource(rows.map((r) => r.source));
   } catch {
     return undefined; // never let a lookup failure block opening a tab
   }
@@ -97,6 +106,6 @@ open.post("/", async (c) => {
   }
 
   // An explicit profile wins; otherwise infer each URL's own provenance.
-  for (const url of valid) launch(url, profile ?? dominantSource(url));
+  for (const url of valid) launch(url, profile ?? inferredProfile(url));
   return c.json({ opened: valid.length, rejected: list.length - valid.length });
 });

@@ -3,6 +3,7 @@ import {
   isProfileLabel,
   launchArgs,
   parseSourceLabel,
+  pickLaunchableSource,
   resolveLaunchTarget,
 } from "../src/server/lib/browsers.ts";
 
@@ -112,6 +113,33 @@ describe("launchArgs", () => {
   });
 });
 
+describe("pickLaunchableSource", () => {
+  // Stub the launch check so the ranking is asserted the same way everywhere,
+  // regardless of which browsers exist on the machine running the suite.
+  const canLaunch = (l: string) => l.startsWith("chrome:") || l.startsWith("edge:");
+
+  test("skips a more-frequent source that cannot be launched", () => {
+    // The real shape of a merged database: a year of Takeout outranks ~90 days
+    // of local Chrome for nearly every URL, but Chrome is what can be launched.
+    expect(pickLaunchableSource(["takeout", "chrome:Default"], canLaunch)).toBe("chrome:Default");
+  });
+
+  test("respects the caller's ranking among launchable sources", () => {
+    expect(pickLaunchableSource(["edge:Default", "chrome:Default"], canLaunch)).toBe("edge:Default");
+    expect(pickLaunchableSource(["chrome:Default", "edge:Default"], canLaunch)).toBe("chrome:Default");
+  });
+
+  test("returns undefined when nothing is launchable", () => {
+    expect(pickLaunchableSource(["takeout", "firefox:abc.default", "safari"], canLaunch)).toBeUndefined();
+    expect(pickLaunchableSource([], canLaunch)).toBeUndefined();
+  });
+
+  test("defaults to the real resolver when no predicate is given", () => {
+    // Environment-independent direction only: these can never be launchable.
+    expect(pickLaunchableSource(["takeout", "safari"])).toBeUndefined();
+  });
+});
+
 describe("isProfileLabel", () => {
   test("accepts real source labels", () => {
     expect(isProfileLabel("chrome:Default")).toBe(true);
@@ -123,6 +151,33 @@ describe("isProfileLabel", () => {
     expect(isProfileLabel("../../etc/passwd")).toBe(false);
     expect(isProfileLabel(`chrome:${"a".repeat(300)}`)).toBe(false);
     expect(isProfileLabel("chrome:Default\nchrome:Other")).toBe(false);
+  });
+
+  test("bounds the slug as well as the profile", () => {
+    // The original pattern bounded only the profile half, so an arbitrarily long
+    // slug was accepted and then lowercased before being rejected.
+    expect(isProfileLabel(`${"a".repeat(100_000)}:Default`)).toBe(false);
+    expect(isProfileLabel(`${"a".repeat(21)}:Default`)).toBe(false);
+    expect(isProfileLabel("opera-gx:Default")).toBe(true); // 8 chars, still fine
+  });
+
+  test("rejects anything that could escape the user-data directory", () => {
+    // The profile half becomes a --profile-directory= argument.
+    expect(isProfileLabel("chrome:../../evil")).toBe(false);
+    expect(isProfileLabel("chrome:..")).toBe(false);
+    expect(isProfileLabel("chrome:a/b")).toBe(false);
+    expect(isProfileLabel("chrome:a\\b")).toBe(false);
+  });
+
+  test("rejects carriage returns and other control characters", () => {
+    // JS `.` already excluded CR and LF, so these held before the pattern was
+    // tightened; asserted explicitly so the guarantee is pinned rather than
+    // inherited from a regex subtlety nobody remembers.
+    expect(isProfileLabel("chrome:Def\rault")).toBe(false);
+    expect(isProfileLabel("chrome:Default\r")).toBe(false);
+    expect(isProfileLabel("chrome:Def\tault")).toBe(false);
+    // ...but a plain space is legitimate and must survive: "Profile 2".
+    expect(isProfileLabel("chrome:Guest Profile")).toBe(true);
   });
 
   test("rejects non-strings and empty profiles", () => {

@@ -131,16 +131,43 @@ function whichInPath(names: string[]): string | null {
   return null;
 }
 
-/** A source label shaped like a launch profile, e.g. "chrome:Profile 2". */
-const PROFILE_LABEL = /^[a-z-]+:.{1,64}$/;
+/**
+ * A source label shaped like a launch profile, e.g. "chrome:Profile 2".
+ *
+ * Both halves are bounded. The profile half excludes path separators and control
+ * characters but still allows spaces and colons, which real Chromium profile
+ * directory names may contain ("Guest Profile").
+ */
+const PROFILE_LABEL = /^[a-z-]{1,20}:[^\\/\x00-\x1f]{1,64}$/;
 
 /**
- * Is this a syntactically acceptable profile label? Used to sanity-check values
- * arriving over HTTP before they reach the resolver. Note `.` excludes newlines,
- * so a label containing one is rejected.
+ * Is this a syntactically acceptable profile label? Sanity-checks values before
+ * they reach the resolver — over HTTP, or out of the database.
+ *
+ * The profile half becomes a `--profile-directory=` argument, so it must not be
+ * able to walk out of the user-data directory: separators are excluded by the
+ * pattern and `..` is rejected outright.
  */
 export function isProfileLabel(value: unknown): value is string {
-  return typeof value === "string" && PROFILE_LABEL.test(value);
+  return typeof value === "string" && PROFILE_LABEL.test(value) && !value.includes("..");
+}
+
+/**
+ * The first label in a preference-ordered list that can actually be launched.
+ *
+ * Callers rank candidates by their own criteria (visit count, recency); this
+ * filters that ranking down to what is installed. Without it, a URL visited
+ * mostly via a Takeout export loses to its own Chrome profile — the common case
+ * when a long-term export is merged with a fresher local import.
+ *
+ * `canLaunch` is injectable so the ranking can be tested without depending on
+ * which browsers happen to be installed on the machine running the suite.
+ */
+export function pickLaunchableSource(
+  orderedLabels: string[],
+  canLaunch: (label: string) => boolean = (l) => resolveLaunchTarget(l) !== null,
+): string | undefined {
+  return orderedLabels.find(canLaunch);
 }
 
 /**
@@ -166,6 +193,9 @@ export function parseSourceLabel(sourceLabel: string): { slug: string; profileDi
  * "fall back to the OS default browser", never an error.
  */
 export function resolveLaunchTarget(sourceLabel: string): LaunchTarget | null {
+  // Gate every caller, not just the HTTP one: source labels also arrive from the
+  // database, and the profile half ends up in an argv element either way.
+  if (!isProfileLabel(sourceLabel)) return null;
   const parts = parseSourceLabel(sourceLabel);
   if (!parts) return null;
   if (!CHROMIUM_SLUGS.has(parts.slug)) return null;
