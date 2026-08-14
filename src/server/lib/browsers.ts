@@ -139,7 +139,7 @@ function whichInPath(names: string[]): string | null {
  * characters but still allows spaces and colons, which real Chromium profile
  * directory names may contain ("Guest Profile").
  */
-const PROFILE_LABEL = /^[A-Za-z-]{1,20}:[^\\/\x00-\x1f]{1,64}$/;
+const PROFILE_LABEL = /^[A-Za-z-]{1,20}:[^\\/\x00-\x1f\x7f]{1,64}$/;
 
 /**
  * Is this a syntactically acceptable profile label? Sanity-checks values before

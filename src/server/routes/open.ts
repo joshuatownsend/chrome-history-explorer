@@ -1,3 +1,4 @@
+import type { Statement } from "bun:sqlite";
 import { Hono } from "hono";
 import { getDb } from "../db.ts";
 import {
@@ -23,6 +24,25 @@ function isOpenableUrl(raw: unknown): raw is string {
 }
 
 /**
+ * Prepared once and reused. bun:sqlite does cache statements by SQL text, so this
+ * is not a recompile per call — but the cache lookup is still ~4x the cost of a
+ * hoisted handle, and this runs up to MAX_BULK times per request. Lazy because the
+ * database is opened after this module is imported.
+ */
+let sourcesForUrl: Statement<{ source: string }, [string]> | undefined;
+
+function sourcesQuery(): Statement<{ source: string }, [string]> {
+  sourcesForUrl ??= getDb().query<{ source: string }, [string]>(
+    `SELECT v.source
+       FROM visits v JOIN urls u ON u.id = v.url_id
+      WHERE u.url = ?
+      GROUP BY v.source
+      ORDER BY COUNT(*) DESC`,
+  );
+  return sourcesForUrl;
+}
+
+/**
  * The browser profile to reopen a URL in, inferred from where it was visited.
  *
  * Saved sessions come only from Takeout, which knows nothing about local profiles,
@@ -33,18 +53,18 @@ function isOpenableUrl(raw: unknown): raw is string {
  * days), losing the Chrome profile that is sitting right behind it.
  *
  * Returns undefined (→ OS default browser) when nothing launchable is on record.
+ *
+ * KNOWN CEILING: visits dedupe on (url_id, time_ms) with INSERT OR IGNORE, so when
+ * a Takeout export is imported before a local profile, the overlapping local rows
+ * are dropped and their `source` with them. Only URLs that kept at least one
+ * Chromium-labelled visit can be inferred — measured at ~7.5% on a database where
+ * Takeout landed first. Everything else falls back to the OS default browser, as
+ * it did before profile targeting existed. Fixing this needs per-URL provenance
+ * stored outside the deduplicated visit row; see ideas/README.md.
  */
 function inferredProfile(url: string): string | undefined {
   try {
-    const rows = getDb()
-      .query<{ source: string }, [string]>(
-        `SELECT v.source
-           FROM visits v JOIN urls u ON u.id = v.url_id
-          WHERE u.url = ?
-          GROUP BY v.source
-          ORDER BY COUNT(*) DESC`,
-      )
-      .all(url);
+    const rows = sourcesQuery().all(url);
     return pickLaunchableSource(rows.map((r) => r.source));
   } catch {
     return undefined; // never let a lookup failure block opening a tab

@@ -191,6 +191,7 @@ describe("isProfileLabel", () => {
     expect(isProfileLabel("chrome:Def\rault")).toBe(false);
     expect(isProfileLabel("chrome:Default\r")).toBe(false);
     expect(isProfileLabel("chrome:Def\tault")).toBe(false);
+    expect(isProfileLabel("chrome:Def\x7fault")).toBe(false); // DEL is a control char too
     // ...but a plain space is legitimate and must survive: "Profile 2".
     expect(isProfileLabel("chrome:Guest Profile")).toBe(true);
   });

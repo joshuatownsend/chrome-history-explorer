@@ -47,6 +47,7 @@ Potentially useful, not now. Re-scored automatically on the next reconcile run.
 
 | Idea | Parked because | Closest surviving sibling |
 |------|----------------|---------------------------|
+| Preserve per-URL source provenance outside the deduplicated visit row | Raised by Codex reviewing PR #27. Visits dedupe on `(url_id, time_ms)` with `INSERT OR IGNORE`, so importing Takeout before a local profile drops the overlapping local rows **and their `source`**. Measured on this database: only 2,470 of 32,844 URLs (**7.5%**) retain a Chromium source label, so profile-aware reopening falls back to the OS default browser for the other 92.5%. Fixing it needs a `url_sources(url_id, source)` table written on every ingest regardless of visit dedup, plus a re-import to backfill — a schema and loader change that intersects the deliberate dedup design in `INSIGHTS.md:75`, so deliberately not done inside a review round. | 3 (implemented) |
 | Multi-machine consolidation | Strong demand across three comparators, but largely **already works** — importing a second machine's profile DB into the same store dedupes on `(url_id, time_ms)`. The gap is documentation and discovery, not capability. | 9 |
 | Backup / restore | The database is a single SQLite file the user already owns. The real ask found in research was documentation of the no-data-loss story. | 8 |
 | One-click "Refresh everything" | Depends on #12; revisit once the queue is generalized. | 12 |
