@@ -127,11 +127,19 @@ export const api = {
 
   session: (id: number) => getJson<{ id: number; tabs: SessionTab[] }>(`/sessions/${id}`),
 
-  openUrls: async (urls: string[]): Promise<{ opened: number; rejected: number; error?: string }> => {
+  /**
+   * Open URLs in the browser. `profile` is a source label ("chrome:Profile 2");
+   * omit it and the server infers each URL's profile from its visit provenance,
+   * falling back to the OS default browser when it can't.
+   */
+  openUrls: async (
+    urls: string[],
+    profile?: string,
+  ): Promise<{ opened: number; rejected: number; error?: string }> => {
     const r = await fetch(`/api/open`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ urls }),
+      body: JSON.stringify({ urls, profile }),
     });
     return r.json();
   },

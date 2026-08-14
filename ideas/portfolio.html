@@ -1,0 +1,925 @@
+<title>Chrome History Explorer Portfolio</title>
+
+<style>
+  /* ---- Design plan -------------------------------------------------------
+     Color  : greenbar ledger paper — the alternating-row accounting stock this
+              page's central artifact (a scored table) descends from. Ground is
+              a pale green-grey, ink a deep green-black, accent a deep verdigris
+              (the oxidised-copper of an archive). Neutrals carry a green bias so
+              they read as chosen, not inherited. Semantic hues (verdigris /
+              ochre / slate / rust) encode verdict and are kept off the accent.
+     Type   : three roles, all system-resident (CSP blocks font CDNs, and a
+              silent fallback is worse than a deliberate stack) — a Palatino-class
+              serif for headings, the UI sans for prose, a mono for paths, SHAs,
+              scores and every citation.
+     Layout : one column, prose held near 68ch; the portfolio table breaks out
+              wider into its own scroll container; ideas are progressive-disclosure
+              rows so twelve of them stay scannable.
+     ------------------------------------------------------------------------ */
+
+  :root {
+    --ground:      #F4F6F1;
+    --surface:     #FFFFFF;
+    --surface-alt: #EDF1EA;
+    --ink:         #17231F;
+    --ink-soft:    #4A5B54;
+    --ink-faint:   #74857D;
+    --rule:        #D3DCD3;
+    --rule-soft:   #E3E9E1;
+    --accent:      #0E6354;
+    --accent-ink:  #FFFFFF;
+    --accent-wash: #E0EFEA;
+
+    --advance:     #0E6354;
+    --advance-bg:  #DFEDE8;
+    --validate:    #8A5A0C;
+    --validate-bg: #F4E9D4;
+    --park:        #4A5B54;
+    --park-bg:     #E4E9E4;
+    --kill:        #8C3A2C;
+    --kill-bg:     #F2E0DC;
+
+    --serif: ui-serif, "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans:  ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono:  ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+
+    --shadow: 0 1px 2px rgba(23, 35, 31, .05), 0 8px 24px -16px rgba(23, 35, 31, .3);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:      #0F1512;
+      --surface:     #161D19;
+      --surface-alt: #1B231E;
+      --ink:         #E5EDE7;
+      --ink-soft:    #A3B2AA;
+      --ink-faint:   #7C8B83;
+      --rule:        #2A342E;
+      --rule-soft:   #212A25;
+      --accent:      #57C4AB;
+      --accent-ink:  #0F1512;
+      --accent-wash: #17302A;
+
+      --advance:     #57C4AB;
+      --advance-bg:  #16302A;
+      --validate:    #DBA75A;
+      --validate-bg: #322613;
+      --park:        #A3B2AA;
+      --park-bg:     #232C27;
+      --kill:        #E08A78;
+      --kill-bg:     #33201C;
+
+      --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -16px rgba(0, 0, 0, .8);
+    }
+  }
+
+  :root[data-theme="dark"] {
+    --ground:      #0F1512;
+    --surface:     #161D19;
+    --surface-alt: #1B231E;
+    --ink:         #E5EDE7;
+    --ink-soft:    #A3B2AA;
+    --ink-faint:   #7C8B83;
+    --rule:        #2A342E;
+    --rule-soft:   #212A25;
+    --accent:      #57C4AB;
+    --accent-ink:  #0F1512;
+    --accent-wash: #17302A;
+
+    --advance:     #57C4AB;
+    --advance-bg:  #16302A;
+    --validate:    #DBA75A;
+    --validate-bg: #322613;
+    --park:        #A3B2AA;
+    --park-bg:     #232C27;
+    --kill:        #E08A78;
+    --kill-bg:     #33201C;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, .4), 0 8px 24px -16px rgba(0, 0, 0, .8);
+  }
+
+  * { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.62;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 3.5rem 1.5rem 5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 3.25rem;
+  }
+
+  .prose { max-width: 68ch; }
+
+  a { color: var(--accent); text-underline-offset: .18em; }
+  a:focus-visible,
+  summary:focus-visible {
+    outline: 2px solid var(--accent);
+    outline-offset: 3px;
+    border-radius: 3px;
+  }
+
+  code, .mono { font-family: var(--mono); font-size: .875em; }
+
+  /* ---------- header ---------- */
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    margin: 0 0 .9rem;
+  }
+
+  h1 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(2.1rem, 5.5vw, 3rem);
+    line-height: 1.1;
+    letter-spacing: -.015em;
+    text-wrap: balance;
+    margin: 0 0 .75rem;
+  }
+
+  .standfirst {
+    font-size: 1.075rem;
+    color: var(--ink-soft);
+    margin: 0;
+    text-wrap: pretty;
+  }
+
+  .meta {
+    margin-top: 1.75rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--rule);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem 2.25rem;
+    font-family: var(--mono);
+    font-size: .8rem;
+  }
+  .meta div { display: flex; flex-direction: column; gap: .2rem; }
+  .meta dt, .meta .k {
+    font-size: .68rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .meta .v { color: var(--ink); font-variant-numeric: tabular-nums; }
+
+  /* ---------- sections ---------- */
+
+  section { display: flex; flex-direction: column; gap: 1.15rem; }
+
+  h2 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 1.6rem;
+    letter-spacing: -.01em;
+    margin: 0;
+    text-wrap: balance;
+  }
+
+  .section-note { margin: 0; color: var(--ink-soft); max-width: 68ch; }
+
+  /* ---------- honesty strip ---------- */
+
+  .sources {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+    gap: 1px;
+    background: var(--rule);
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .source { background: var(--surface); padding: .95rem 1.1rem; display: flex; flex-direction: column; gap: .3rem; }
+  .source .name { font-size: .92rem; font-weight: 600; }
+  .source .detail { font-size: .82rem; color: var(--ink-soft); }
+
+  .stat {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    font-family: var(--mono);
+    font-size: .68rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+  .stat::before { content: ""; width: .5rem; height: .5rem; border-radius: 50%; background: currentColor; }
+  .stat.ok    { color: var(--advance); }
+  .stat.empty { color: var(--park); }
+  .stat.fail  { color: var(--kill); }
+
+  .disclosures { margin: 0; padding-left: 1.1rem; display: flex; flex-direction: column; gap: .55rem; max-width: 68ch; }
+  .disclosures li { color: var(--ink-soft); }
+  .disclosures strong { color: var(--ink); }
+
+  /* ---------- table ---------- */
+
+  .scroll-x {
+    overflow-x: auto;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--surface);
+  }
+
+  table { border-collapse: collapse; width: 100%; min-width: 54rem; font-size: .875rem; }
+  thead th {
+    text-align: left;
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--ink-faint);
+    padding: .8rem .85rem;
+    border-bottom: 1px solid var(--rule);
+    white-space: nowrap;
+  }
+  tbody td { padding: .8rem .85rem; border-bottom: 1px solid var(--rule-soft); vertical-align: top; }
+  tbody tr:nth-child(even) td { background: var(--surface-alt); }
+  tbody tr:last-child td { border-bottom: 0; }
+  td.num, td.score { font-family: var(--mono); font-variant-numeric: tabular-nums; color: var(--ink-soft); white-space: nowrap; }
+  td.idea { font-weight: 600; min-width: 16rem; }
+  td.ev { color: var(--ink-soft); font-size: .82rem; min-width: 18rem; }
+  td.small { font-size: .8rem; color: var(--ink-soft); white-space: nowrap; }
+
+  .badge {
+    display: inline-block;
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+    font-weight: 700;
+    padding: .2rem .45rem;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+  .badge.advance  { color: var(--advance);  background: var(--advance-bg); }
+  .badge.validate { color: var(--validate); background: var(--validate-bg); }
+  .badge.park     { color: var(--park);     background: var(--park-bg); }
+  .badge.kill     { color: var(--kill);     background: var(--kill-bg); }
+  .badge.state    { color: var(--accent);   background: var(--accent-wash); }
+
+  /* ---------- idea cards ---------- */
+
+  .ideas { display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+
+  details.idea { background: var(--surface); }
+  details.idea > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: .95rem 1.1rem;
+    display: flex;
+    align-items: baseline;
+    gap: .85rem;
+    flex-wrap: wrap;
+  }
+  details.idea > summary::-webkit-details-marker { display: none; }
+  details.idea > summary::after {
+    content: "+";
+    margin-left: auto;
+    font-family: var(--mono);
+    color: var(--ink-faint);
+    font-size: 1rem;
+  }
+  details.idea[open] > summary::after { content: "\2212"; }
+  details.idea > summary:hover { background: var(--surface-alt); }
+  details.idea[open] > summary { border-bottom: 1px solid var(--rule-soft); }
+
+  .idea-n { font-family: var(--mono); font-size: .8rem; color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+  .idea-t { font-weight: 600; }
+
+  .idea-body { padding: 1.1rem 1.1rem 1.35rem; display: flex; flex-direction: column; gap: .95rem; }
+  .field { display: flex; flex-direction: column; gap: .25rem; }
+  .field .k {
+    font-family: var(--mono);
+    font-size: .66rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+  }
+  .field p { margin: 0; max-width: 68ch; }
+  .field .quote { border-left: 2px solid var(--accent); padding-left: .8rem; color: var(--ink-soft); font-style: italic; }
+
+  .scope { font-size: .875rem; color: var(--ink-soft); background: var(--surface-alt); border-radius: 3px; padding: .65rem .8rem; max-width: 68ch; }
+  .scope strong { color: var(--ink); font-style: normal; }
+
+  /* ---------- ledgers ---------- */
+
+  details.ledger { border: 1px solid var(--rule); border-radius: 4px; background: var(--surface); }
+  details.ledger > summary {
+    cursor: pointer;
+    list-style: none;
+    padding: .85rem 1.1rem;
+    font-weight: 600;
+    display: flex;
+    gap: .6rem;
+    align-items: center;
+  }
+  details.ledger > summary::-webkit-details-marker { display: none; }
+  details.ledger > summary::after { content: "+"; margin-left: auto; font-family: var(--mono); color: var(--ink-faint); }
+  details.ledger[open] > summary::after { content: "\2212"; }
+  details.ledger[open] > summary { border-bottom: 1px solid var(--rule-soft); }
+
+  /* ---------- deliverables ---------- */
+
+  .placeholder {
+    border: 1px dashed var(--rule);
+    border-radius: 4px;
+    padding: 1.6rem 1.3rem;
+    text-align: center;
+    color: var(--ink-soft);
+    background: var(--surface);
+  }
+  .placeholder p { margin: 0; }
+
+  /* ---------- footer ---------- */
+
+  footer {
+    border-top: 1px solid var(--rule);
+    padding-top: 1.4rem;
+    font-family: var(--mono);
+    font-size: .75rem;
+    color: var(--ink-faint);
+    display: flex;
+    flex-direction: column;
+    gap: .4rem;
+  }
+
+  /* ---------- deliverables ---------- */
+
+  .files { display: flex; flex-direction: column; gap: 1px; background: var(--rule); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden; }
+
+  .file { background: var(--surface); padding: 1.05rem 1.15rem; display: flex; flex-direction: column; gap: .6rem; }
+  .file-head { display: flex; align-items: baseline; gap: .7rem; flex-wrap: wrap; }
+  .file-path { font-family: var(--mono); font-size: .82rem; color: var(--accent); word-break: break-all; }
+  .file-sum { margin: 0; color: var(--ink-soft); font-size: .9rem; max-width: 68ch; }
+
+  details.kickoff > summary {
+    cursor: pointer;
+    list-style: none;
+    font-family: var(--mono);
+    font-size: .7rem;
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: var(--ink-faint);
+    padding: .3rem 0;
+  }
+  details.kickoff > summary::-webkit-details-marker { display: none; }
+  details.kickoff > summary::before { content: "+ "; }
+  details.kickoff[open] > summary::before { content: "\2212 "; }
+  details.kickoff > summary:hover { color: var(--ink); }
+
+  pre.prompt {
+    margin: .35rem 0 0;
+    padding: .85rem 1rem;
+    background: var(--surface-alt);
+    border: 1px solid var(--rule-soft);
+    border-radius: 3px;
+    overflow-x: auto;
+    font-family: var(--mono);
+    font-size: .78rem;
+    line-height: 1.55;
+    white-space: pre;
+    color: var(--ink);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header>
+    <p class="eyebrow">Ideation run &middot; deep mode</p>
+    <h1>Twelve ways this could grow</h1>
+    <p class="standfirst prose">
+      A scored portfolio for <strong>chrome-history-explorer</strong>, built by mining the codebase for
+      what it already makes cheap, and the wider world for what people with this problem actually say.
+      These are options to weigh, not a ranked backlog — the strategy is yours.
+    </p>
+
+    <div class="meta">
+      <div><span class="k">Run date</span><span class="v">2026-08-12</span></div>
+      <div><span class="k">Mode</span><span class="v">deep</span></div>
+      <div><span class="k">Stamped SHA</span><span class="v">a33971d</span></div>
+      <div><span class="k">Pipeline</span><span class="v">27 candidates &rarr; 12 survivors &rarr; 12 selected</span></div>
+      <div><span class="k">Killed / parked</span><span class="v">4 / 11</span></div>
+    </div>
+  </header>
+
+  <section>
+    <h2>How honest is this run?</h2>
+    <p class="section-note">
+      Every evidence source this mode planned, and what it actually returned. A source that failed says so here.
+    </p>
+
+    <div class="sources">
+      <div class="source">
+        <span class="stat ok">Delivered</span>
+        <span class="name">Codebase signals 1&ndash;3</span>
+        <span class="detail">Unfinished intent, stated-but-undelivered, surface asymmetries. 8 findings; load-bearing claims re-verified by hand.</span>
+      </div>
+      <div class="source">
+        <span class="stat ok">Delivered</span>
+        <span class="name">Codebase signals 4&ndash;5</span>
+        <span class="detail">Adjacent possible, friction worth productizing. 8 findings; all re-verified by hand.</span>
+      </div>
+      <div class="source">
+        <span class="stat ok">Delivered</span>
+        <span class="name">Live research</span>
+        <span class="detail">9 themes from Promnesia, Falcon, Memex and Hacker News. Reaction counts re-checked against the GitHub API.</span>
+      </div>
+      <div class="source">
+        <span class="stat ok">Delivered</span>
+        <span class="name">Maintainer interview</span>
+        <span class="detail">Two of three questions answered substantively. The strongest single evidence in the run.</span>
+      </div>
+      <div class="source">
+        <span class="stat fail">Failed</span>
+        <span class="name">Session transcripts</span>
+        <span class="detail">The sessions that built this app have been rotated off disk. No inline fallback was possible &mdash; the source material no longer exists.</span>
+      </div>
+      <div class="source">
+        <span class="stat empty">Empty</span>
+        <span class="name">This repo's tracker</span>
+        <span class="detail">0 issues, 0 discussions, 2 stars, 4 views in 14 days. A confirmed null result, not a gap in the search.</span>
+      </div>
+    </div>
+
+    <ul class="disclosures">
+      <li><strong>Two of the three personas are problem-space personas.</strong> They quote real people verbatim &mdash; but users of comparable tools and commenters on the problem, not users of this project, which has none yet. Only the maintainer persona is grounded in direct evidence about this software.</li>
+      <li><strong>Reddit is unmined ground, not an absence of evidence.</strong> Search returned HTTP 403 and four targeted queries surfaced no thread content. r/selfhosted, r/DataHoarder and r/PKMS remain uncovered.</li>
+      <li><strong>An empty tracker is normal for this niche.</strong> Promnesia, the healthiest comparator at 1,891 stars, has a top-reacted open issue of only 6 reactions.</li>
+      <li><strong>The project's own documents disagree with each other</strong> about what "hidden" guarantees. That is presented as idea 7 &mdash; a decision with two valid resolutions, not a defect with one fix.</li>
+      <li>No prompt-injection content was encountered by any lens, in the repository or on the web. No secrets were surfaced.</li>
+    </ul>
+  </section>
+
+  <section>
+    <h2>Who these are for</h2>
+
+    <div class="ideas">
+      <details class="idea">
+        <summary><span class="idea-n">P1</span><span class="idea-t">The multi-profile tab hoarder</span><span class="badge state">high confidence</span></summary>
+        <div class="idea-body">
+          <div class="field">
+            <span class="k">Today</span>
+            <p>Runs several Chrome profiles at once &mdash; personal, work, one per client, each with different logins &mdash; and holds far more tabs open than anyone can reason about. The scale is on record in the repo: one saved window holding 521 of 527 tabs. The app lets him look backwards at all of it beautifully, and gives him exactly one action to take on it.</p>
+          </div>
+          <div class="field">
+            <span class="k">Weekly ritual</span>
+            <p>Re-imports periodically, because the two archives are complementary &mdash; local Chrome expires at about 90 days while the Takeout export holds a full year. Browses research sessions and insights. Forwards links worth returning to into ThreadCrumb.</p>
+          </div>
+          <div class="field">
+            <span class="k">Frustration</span>
+            <p class="quote">Closing tabs, grouping tabs, or otherwise taking some action on the way-too-many-tabs that I have open at any given time. Also moving tabs across windows.</p>
+          </div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">P2</span><span class="idea-t">The &ldquo;I know I read this&rdquo; searcher</span><span class="badge state">problem-space</span></summary>
+        <div class="idea-body">
+          <div class="field">
+            <span class="k">Today</span>
+            <p>Types a half-remembered phrase into the browser's history box and gets what one commenter called <em>&ldquo;the same barely searchable table of URLs as their only history view.&rdquo;</em> The phrase they remember is from the body of the page, not its title &mdash; so title-and-URL search cannot find it. They fall back to a search engine, or hand-roll: one built a local logging proxy feeding a Django app; another pastes raw SQL from their dotfiles.</p>
+          </div>
+          <div class="field">
+            <span class="k">Frustration</span>
+            <p class="quote">Is there any product out there that creates a fully searchable full-text history forever with little fuss?</p>
+            <p style="font-size:.82rem;color:var(--ink-faint);margin-top:.3rem">Ask HN, 235 points / 83 comments. The same author rejected the leading alternative for requiring you to save first: <em>&ldquo;My brain, naturally, does not know ahead of time what could be useful in the future.&rdquo;</em></p>
+          </div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">P3</span><span class="idea-t">The local-first refugee</span><span class="badge state">problem-space</span></summary>
+        <div class="idea-body">
+          <div class="field">
+            <span class="k">Today</span>
+            <p>Has been burned. Memex removed its licence and confirmed it was no longer intended to be open source &mdash; and a user in that thread said being free software <em>&ldquo;was the main reason I chose to use Memex.&rdquo;</em> Falcon, still the tool people recommend to each other, has not been pushed since August 2024. One competitor drew a two-word review: <em>&ldquo;Subscription fatigue.&rdquo;</em></p>
+          </div>
+          <div class="field">
+            <span class="k">Frustration</span>
+            <p>There is no durable winner, and no way to audit what a tool actually sends outward. The first question asked, every time, before any feature discussion:</p>
+            <p class="quote">How and where is the full text of every page I visit getting stored &amp; for how long?</p>
+          </div>
+        </div>
+      </details>
+    </div>
+  </section>
+
+  <section>
+    <h2>The portfolio</h2>
+    <p class="section-note">
+      Sorted by dual-lens bonus, then score. <strong>Lenses: both</strong> means the architecture makes it cheap
+      <em>and</em> someone demonstrably wants it &mdash; the intersection worth looking for.
+    </p>
+
+    <div class="scroll-x">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Idea</th><th>Verdict</th><th>Score</th><th>Lenses</th>
+            <th>Persona</th><th>Strongest evidence</th><th>Effort</th><th>Build</th><th>State</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td class="num">1</td><td class="idea">Keep the page text you already fetch, and search it</td><td><span class="badge advance">Advance</span></td><td class="score">10/10</td><td class="small">both</td><td class="small">P2</td><td class="ev">Ask HN, 235 pts: <em>&ldquo;fully searchable full-text history forever&rdquo;</em>; <code>extract.ts</code> extracts the text, <code>ai.ts:43-60</code> discards it</td><td class="small">M</td><td class="small">natural-fit</td><td><span class="badge state">Plan written</span></td></tr>
+          <tr><td class="num">2</td><td class="idea">Put liveness and transition into the ThreadCrumb capture</td><td><span class="badge advance">Advance</span></td><td class="score">10/10</td><td class="small">both</td><td class="small">P1</td><td class="ev">Interview: the maintainer's own named killer feature; <code>INSIGHTS.md:68</code> calls <code>buildCaptureContext</code> &ldquo;the one real design lever&rdquo;</td><td class="small">S</td><td class="small">natural-fit</td><td><span class="badge state">Plan written</span></td></tr>
+          <tr><td class="num">3</td><td class="idea">Open tabs into the right Chrome profile</td><td><span class="badge advance">Advance</span></td><td class="score">9/10</td><td class="small">both</td><td class="small">P1</td><td class="ev">Interview: separate profiles for personal, work and clients; <code>open.ts:23-32</code> hands every URL to the OS default browser</td><td class="small">S</td><td class="small">natural-fit</td><td><span class="badge state">Plan written</span></td></tr>
+          <tr><td class="num">4</td><td class="idea">Show what left the machine &mdash; an egress audit log</td><td><span class="badge advance">Advance</span></td><td class="score">9/10</td><td class="small">both</td><td class="small">P3</td><td class="ev">The first question local-first evaluators ask; the <code>enrichments</code> table already records every outbound call</td><td class="small">M</td><td class="small">natural-fit</td><td><span class="badge state">Plan written</span></td></tr>
+          <tr><td class="num">5</td><td class="idea">Import bookmarks as a first-class source</td><td><span class="badge advance">Advance</span></td><td class="score">9/10</td><td class="small">both</td><td class="small">P2</td><td class="ev">Falcon #29, <strong>8 reactions</strong> &mdash; top open request on the closest comparator; <code>firefox.ts:24-26</code> reads only visits from a database holding <code>moz_bookmarks</code></td><td class="small">M</td><td class="small">natural-fit</td><td><span class="badge state">Plan written</span></td></tr>
+          <tr><td class="num">6</td><td class="idea">Render saved windows as the navigation tree they were</td><td><span class="badge advance">Advance</span></td><td class="score">9/10</td><td class="small">both</td><td class="small">P1</td><td class="ev">HN: <em>&ldquo;showing trails as tree instead of tabs&rdquo;</em>; <code>referrer</code> and <code>tab_node_id</code> written at ingest, never read back</td><td class="small">M</td><td class="small">natural-fit</td><td><span class="badge state">Plan written</span></td></tr>
+          <tr><td class="num">7</td><td class="idea">Close the hidden-host liveness gap</td><td><span class="badge advance">Advance</span></td><td class="score">8/10</td><td class="small">both</td><td class="small">P3</td><td class="ev"><code>README.md:222</code> promises hidden hosts are never sent to liveness; <code>enrich.ts</code> and <code>jobs.ts</code> gate on <code>is_private</code> only</td><td class="small">S</td><td class="small">natural-fit</td><td><span class="badge state">Plan written</span></td></tr>
+          <tr><td class="num">8</td><td class="idea">Let every view export what's on screen</td><td><span class="badge advance">Advance</span></td><td class="score">8/10</td><td class="small">both</td><td class="small">P2</td><td class="ev">Steady PKM-export requests on the closest comparator; four import paths and zero export paths, verified by grep across the repo</td><td class="small">M</td><td class="small">natural-fit</td><td><span class="badge state">Plan written</span></td></tr>
+          <tr><td class="num">9</td><td class="idea">Make Takeout importable from the Import tab</td><td><span class="badge advance">Advance</span></td><td class="score">8/10</td><td class="small">both</td><td class="small">P2</td><td class="ev">Setup friction decides adoption in this niche; <code>ImportView.tsx</code> has no path input, so the headline source is the only one needing a terminal</td><td class="small">S</td><td class="small">natural-fit</td><td><span class="badge state">Plan written</span></td></tr>
+          <tr><td class="num">10</td><td class="idea">Act on the tabs that are open right now</td><td><span class="badge validate">Validate</span></td><td class="score">8/10</td><td class="small">both</td><td class="small">P1</td><td class="ev">The maintainer's strongest stated need, verbatim; <code>open.ts</code> can create tabs and do nothing else</td><td class="small">L</td><td class="small">new-ground</td><td><span class="badge state">Brief written</span></td></tr>
+          <tr><td class="num">11</td><td class="idea">Finish the three half-wired features</td><td><span class="badge advance">Advance</span></td><td class="score">7/10</td><td class="small">inside-out</td><td class="small">P1</td><td class="ev"><code>urlVisits()</code> and <code>aiSummariesFor()</code> have zero callers outside the client module; <code>journeys.ts:8-9</code> on import invalidation</td><td class="small">S</td><td class="small">natural-fit</td><td><span class="badge state">Plan written</span></td></tr>
+          <tr><td class="num">12</td><td class="idea">Generalize the enrichment queue past liveness</td><td><span class="badge advance">Advance</span></td><td class="score">6/10</td><td class="small">inside-out</td><td class="small">P1</td><td class="ev"><code>jobs.ts</code> hardcodes <code>kind='liveness'</code> six times while <code>ai.ts</code> embeds ~30k URLs synchronously against a 60-second idle timeout</td><td class="small">M</td><td class="small">natural-fit</td><td><span class="badge state">Plan written</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <h2>Why each one survived</h2>
+    <p class="section-note">The kill-question answers that decided the verdict, and the honest scope note attached to each.</p>
+
+    <div class="ideas">
+
+      <details class="idea">
+        <summary><span class="idea-n">01</span><span class="idea-t">Keep the page text you already fetch, and search it</span><span class="badge advance">Advance</span></summary>
+        <div class="idea-body">
+          <div class="field"><span class="k">Unique leverage</span><p>Structural, not incremental. Every extension-based competitor is bounded by browser storage quotas &mdash; one analysis of Falcon's source flagged that page text was never truncated inside <code>storage.local</code>, and its maintainer cited the storage ceiling as the reason to decline sync. A server-side SQLite file has no such ceiling. This is the project's real advantage and it is currently unclaimed.</p></div>
+          <div class="field"><span class="k">Does it duplicate anything?</span><p>No &mdash; it upgrades two things at once. Embeddings today are built from <code>title + url</code> truncated to 800 characters, so two pages both titled &ldquo;Docs&rdquo; cluster nowhere near their real topics. The FTS index covers title, URL, domain and path, and cannot answer &ldquo;find the page that said this.&rdquo;</p></div>
+          <div class="field"><span class="k">Smallest credible version</span><p>Persist the extracted text as a new enrichment kind when summarizing, embed the text instead of the title, and add it as a fifth FTS column. No new dependency, no new fetch path, no new provider.</p></div>
+          <div class="scope"><strong>Scope note:</strong> depends on idea 12 for a durable full-history backfill. Storage grows meaningfully &mdash; roughly a few hundred megabytes at 30k pages &mdash; which SQLite handles comfortably but which should be a stated, opt-in cost rather than a surprise.</div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">02</span><span class="idea-t">Put liveness and transition into the ThreadCrumb capture</span><span class="badge advance">Advance</span></summary>
+        <div class="idea-body">
+          <div class="field"><span class="k">Unique leverage</span><p>A cross-source join nothing downstream could reproduce: the Graveyard already computes a liveness verdict for every checked URL, and an intent inbox has no way to derive that on its own. Forwarding it turns a relay into a triage signal.</p></div>
+          <div class="field"><span class="k">Why now</span><p>The maintainer named deeper ThreadCrumb integration as the one feature only he would think of &mdash; and the repo's own engineering notes had already flagged this exact function as the deliberate place to shape what a history link becomes in an inbox.</p></div>
+          <div class="field"><span class="k">Smallest credible version</span><p>One join in the existing capture query, two new fields in the context payload.</p></div>
+          <div class="scope"><strong>Scope note:</strong> &ldquo;better integration&rdquo; was deliberately under-specified in the interview, so the brief opens with what else this seam could carry rather than treating the two-field version as the finished answer. The ceiling depends on ThreadCrumb-side behavior this repository cannot see.</div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">03</span><span class="idea-t">Open tabs into the right Chrome profile</span><span class="badge advance">Advance</span></summary>
+        <div class="idea-body">
+          <div class="field"><span class="k">The problem</span><p>This is not a missing feature &mdash; it is a shipped feature that is actively wrong for its primary user. Reopening hands the URL to the operating system's default browser, so a client tab lands in whichever profile happens to be default, with the wrong logins.</p></div>
+          <div class="field"><span class="k">Unique leverage</span><p>The app already detects profile directories in order to import from them. Nothing else on the machine knows this profile layout.</p></div>
+          <div class="field"><span class="k">Smallest credible version</span><p>Invoke the browser binary with a profile-directory argument instead of the OS handler, keeping the current handler as the fallback for anything unresolved.</p></div>
+          <div class="scope"><strong>Scope note:</strong> hours of work, and the highest value-per-hour item in the portfolio for the maintainer specifically. Cross-platform profile resolution is the only fiddly part.</div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">04</span><span class="idea-t">Show what left the machine &mdash; an egress audit log</span><span class="badge advance">Advance</span></summary>
+        <div class="idea-body">
+          <div class="field"><span class="k">Unique leverage</span><p>The record already exists. Every outbound call &mdash; liveness check, summary, embedding &mdash; writes a row with a timestamp. It has simply never been shown to anyone.</p></div>
+          <div class="field"><span class="k">Does it duplicate anything?</span><p>It completes the privacy feature rather than repeating it. Privacy rules state <em>intent</em>; this shows <em>outcome</em>. Idea 7 exists precisely because those two can diverge without anyone noticing.</p></div>
+          <div class="field"><span class="k">Smallest credible version</span><p>A settings panel listing hosts contacted, by which path, when &mdash; with a count of what was skipped for being private or hidden.</p></div>
+          <div class="scope"><strong>Scope note:</strong> the differentiation claim is real but unproven &mdash; no comparator offers this, and no user has explicitly asked for it in these words. The demand evidence is that local-first users ask the underlying question first, before features.</div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">05</span><span class="idea-t">Import bookmarks as a first-class source</span><span class="badge advance">Advance</span></summary>
+        <div class="idea-body">
+          <div class="field"><span class="k">Demand</span><p>The highest-reacted open request on the closest feature-matched comparator, verified at 8 reactions. One commenter there: <em>&ldquo;I have bookmarks going back to 2009... Sadly, many of the links are now dead. I wish bookmarking had saved copies of these pages.&rdquo;</em> Corroborated by a second tracker.</p></div>
+          <div class="field"><span class="k">Unique leverage</span><p>Bookmarks crossed with the existing dead-link Graveyard answers exactly that comment &mdash; &ldquo;this thing you deliberately kept is gone&rdquo; &mdash; which no comparator can currently say. The transition vocabulary already includes a bookmark type; the entity is what is missing.</p></div>
+          <div class="scope"><strong>Scope note:</strong> effort is uneven across browser families and this should be verified before committing. Firefox bookmarks live in the same database the adapter already opens; Chromium keeps them in a separate JSON file entirely. Firefox first is the honest sequencing.</div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">06</span><span class="idea-t">Render saved windows as the navigation tree they were</span><span class="badge advance">Advance</span></summary>
+        <div class="idea-body">
+          <div class="field"><span class="k">Unique leverage</span><p>The referrer column is the <em>actual</em> parent edge between pages. Research sessions today infer structure from time-adjacency plus a count of link-type transitions &mdash; a flat trail where a tree was recorded. Both columns are written at ingest and never read.</p></div>
+          <div class="field"><span class="k">Demand</span><p>Recurring in the research: one commenter wanted <em>&ldquo;a view that reflects tab histories as some kind of graph&rdquo;</em>; another described wanting to see <em>&ldquo;trails as tree instead of tabs.&rdquo;</em></p></div>
+          <div class="scope"><strong>Scope note:</strong> this is <strong>Takeout-only</strong>. Local browser imports expose no session data at all, so a local-only importer never sees this feature. That materially caps its reach and is the main argument against sequencing it early.</div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">07</span><span class="idea-t">Close the hidden-host liveness gap</span><span class="badge advance">Advance</span></summary>
+        <div class="idea-body">
+          <div class="field"><span class="k">What was found</span><p>The two privacy flags are computed independently, so a host matched only by a Hide rule is marked hidden but not private. All three liveness batch scopes filter on private only. The result: scoped liveness checks issue outbound requests to hosts the user asked the app to hide.</p></div>
+          <div class="field"><span class="k">Why it reads as an oversight</span><p>Every other outbound path gates correctly &mdash; AI, clustering, ThreadCrumb, insights, statistics, the domain tree. Liveness is the lone exception.</p></div>
+          <div class="scope"><strong>Scope note:</strong> <strong>this is a decision, not just a fix.</strong> The README says hidden hosts are never sent to liveness; the security policy says only that hidden hosts are excluded from every <em>view</em>. The code matches the security policy. Tightening the code and narrowing the README are both valid resolutions, and choosing between them is the maintainer's call.</div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">08</span><span class="idea-t">Let every view export what's on screen</span><span class="badge advance">Advance</span></summary>
+        <div class="idea-body">
+          <div class="field"><span class="k">The asymmetry</span><p>Four distinct import paths; zero export paths. No CSV, no download endpoint, no content-disposition header, no blob or download attribute anywhere in the client &mdash; confirmed by grep across the whole repository. There are no delete routes either.</p></div>
+          <div class="field"><span class="k">Unique leverage</span><p>The artifacts worth exporting exist nowhere else: AI-named research sessions, k-means topic labels, liveness verdicts, the Graveyard. For a tool whose pitch is derived value, a one-way door is the conspicuous missing half.</p></div>
+          <div class="scope"><strong>Scope note:</strong> exports must honor the same read-time privacy filter the views already apply, so export inherits the privacy posture rather than re-deriving it. Catch-up rather than differentiating, but well-evidenced catch-up.</div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">09</span><span class="idea-t">Make Takeout importable from the Import tab</span><span class="badge advance">Advance</span></summary>
+        <div class="idea-body">
+          <div class="field"><span class="k">The gap</span><p>Takeout is the headline source and the only one carrying saved tab sessions &mdash; and it is the single source you cannot import from the interface. Every lesser source is two clicks away; this one is a terminal command. All the server-side pieces already exist; only the route shape blocks it.</p></div>
+          <div class="field"><span class="k">Why now</span><p>Setup friction decides adoption in this niche &mdash; the top-reacted open issue on the healthiest comparator is, literally, a request to make it easier to run. This repository has just gone public, which makes the first five minutes matter more than it did last month.</p></div>
+          <div class="scope"><strong>Scope note:</strong> pure friction removal, no differentiation. Hours of work.</div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">10</span><span class="idea-t">Act on the tabs that are open right now</span><span class="badge validate">Validate</span></summary>
+        <div class="idea-body">
+          <div class="field"><span class="k">Demand</span><p>The strongest single piece of evidence in the run, stated directly by the only confirmed user this project has. The repository corroborates the scale independently: one saved window holding 521 of 527 tabs.</p></div>
+          <div class="field"><span class="k">The asymmetry</span><p>The app has exactly one live-action verb and it only goes one way. Opening is fire-and-forget &mdash; nothing comes back, so the app can create tabs and can neither see, close, group nor move a single one.</p></div>
+          <div class="field"><span class="k">Why Validate rather than Advance</span><p>It scores in the Advance band, but the implementation path is genuinely unresolved. A browser extension and a debugging-protocol client are different products with different install stories, different permission models, and different failure modes. Committing to a build plan would front-run that decision.</p></div>
+          <div class="scope"><strong>Scope note:</strong> the deliverable is a one-day spike that answers the architecture question and returns a recommendation &mdash; not an implementation plan. This is the one genuinely new-ground item in the portfolio, and the one most likely to change what the product <em>is</em>.</div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">11</span><span class="idea-t">Finish the three half-wired features</span><span class="badge advance">Advance</span></summary>
+        <div class="idea-body">
+          <div class="field"><span class="k">What is half-built</span><p>A per-URL visit timeline: endpoint built, typed client method built, called by no component. Stored AI summaries: bulk-fetch endpoint built, client method built, called by no component. And an import silently invalidates research sessions and the interest map, with nothing in the interface saying so &mdash; the maintainer's own code comment acknowledges there is no incremental path.</p></div>
+          <div class="field"><span class="k">Direct cost impact</span><p>Because summaries are never read back, one generated yesterday is invisible today and re-clicking bills the provider again. Embedding persistence is sold in the README as a one-time cost per URL; summaries get the same durable storage and none of the payoff.</p></div>
+          <div class="scope"><strong>Scope note:</strong> scores in the Validate band but lands at Advance, because there is nothing to validate &mdash; this is completion work over code that already exists, with no open questions. Recorded rather than silently promoted.</div>
+        </div>
+      </details>
+
+      <details class="idea">
+        <summary><span class="idea-n">12</span><span class="idea-t">Generalize the enrichment queue past liveness</span><span class="badge advance">Advance</span></summary>
+        <div class="idea-body">
+          <div class="field"><span class="k">The risk today</span><p>Embedding a full history loads every public URL and awaits the provider in chunks of 100, sequentially, inside a single HTTP request, against a 60-second idle timeout &mdash; roughly 300 round-trips on one connection at this database's size. It writes completion status directly, bypassing the durable queue, so a failure partway through loses the progress.</p></div>
+          <div class="field"><span class="k">Unique leverage</span><p>The fix is already written. Crash-recoverable job machinery exists &mdash; status column, stuck-job reset at boot, a worker pool draining pending rows &mdash; and is artificially narrowed to one job kind in six places.</p></div>
+          <div class="scope"><strong>Scope note:</strong> infrastructure, not a user-facing feature, and it displaces user-facing work. It earns its place by unblocking idea 1 and removing a real data-loss risk that exists today. Progress bars and resumability come free once the queue is parameterized.</div>
+        </div>
+      </details>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>What didn't make it</h2>
+    <p class="section-note">Nothing is silently dropped. Killed ideas are closed; parked ideas are re-scored automatically on the next run.</p>
+
+    <details class="ledger">
+      <summary>Killed &mdash; 4 candidates <span class="badge kill" style="margin-left:.5rem">Closed</span></summary>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Idea</th><th>Reason</th><th>Closest surviving sibling</th></tr></thead>
+          <tbody>
+            <tr><td class="idea">Publish an API spec and version the HTTP surface</td><td class="ev">39 handlers, but the only consumer is the app's own hand-maintained client, and there are zero external users to serve. Category-generic.</td><td class="small">8</td></tr>
+            <tr><td class="idea">Import downloads as an entity</td><td class="ev">No demand evidence anywhere in the research &mdash; unlike bookmarks, which have a verified 8-reaction request behind them.</td><td class="small">5</td></tr>
+            <tr><td class="idea">Harden the ingest CLI flag parsing</td><td class="ev">Real defects &mdash; an unvalidated source argument and a silently ignored label flag &mdash; but bug-list items, not product options.</td><td class="small">9</td></tr>
+            <tr><td class="idea">Add tagging and annotation</td><td class="ev">Competes head-on with the capture-everything thesis. The 235-point thread's author rejected the leading annotation tool for exactly this reason, and the closest comparator's maintainer explicitly refuses annotations as out of scope.</td><td class="small">1</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+
+    <details class="ledger">
+      <summary>Parked &mdash; 11 candidates <span class="badge park" style="margin-left:.5rem">Revisit</span></summary>
+      <div class="scroll-x">
+        <table>
+          <thead><tr><th>Idea</th><th>Reason</th><th>Closest surviving sibling</th></tr></thead>
+          <tbody>
+            <tr><td class="idea">Multi-machine consolidation</td><td class="ev">Strong demand across three comparators &mdash; but it largely <em>already works</em>: importing a second machine's profile database into the same store dedupes correctly. The gap is documentation and discovery, not capability.</td><td class="small">9</td></tr>
+            <tr><td class="idea">Backup and restore</td><td class="ev">The database is a single SQLite file the user already owns. The real ask found in the research was documentation of the no-data-loss story.</td><td class="small">8</td></tr>
+            <tr><td class="idea">One-click &ldquo;refresh everything&rdquo;</td><td class="ev">Depends on idea 12; revisit once the queue is generalized.</td><td class="small">12</td></tr>
+            <tr><td class="idea">Transition type as a filter facet</td><td class="ev">Cheap and thesis-aligned &mdash; typed and bookmark navigation is the best available proxy for deliberate intent versus drift &mdash; but zero demand evidence.</td><td class="small">1</td></tr>
+            <tr><td class="idea">A &ldquo;moved on&rdquo; card from redirect targets</td><td class="ev">Free insight from data every past liveness run already stored, but nobody asked for it.</td><td class="small">5</td></tr>
+            <tr><td class="idea">Non-browser sources via the existing source interface</td><td class="ev">Inferred from the shape of the interface, not from users.</td><td class="small">5</td></tr>
+            <tr><td class="idea">Safari access-permission hardening</td><td class="ev">A real defect &mdash; a permission failure is swallowed and the profile is silently listed as importable &mdash; but no Safari user exists to be hurt by it yet.</td><td class="small">11</td></tr>
+            <tr><td class="idea">Packaged or containerized install</td><td class="ev">Top request on the healthiest comparator &mdash; but that project's stack is a Python indexer plus an extension plus a config file. A single install command is already far lighter, so the pain does not transfer.</td><td class="small">&mdash;</td></tr>
+            <tr><td class="idea">On-page context injection</td><td class="ev">Large new ground; rides on whatever idea 10's spike concludes about extensions.</td><td class="small">10</td></tr>
+            <tr><td class="idea">Manual rename for research sessions and topics</td><td class="ev">Naming is AI-or-heuristic only today, and a badly-named topic can only be fixed by rebuilding the whole map. No demand evidence.</td><td class="small">11</td></tr>
+            <tr><td class="idea">Liveness controls on the views that can't populate them</td><td class="ev">The badge renders in six views; the loader is wired into two. Consistency, not demand.</td><td class="small">11</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </details>
+  </section>
+
+  <section id="deliverables">
+    <h2>Deliverables</h2>
+    <p class="section-note">
+      Twelve write-ups in <code>ideas/</code>, each stamped at <code>a33971d</code> and each opening with a drift
+      check. Eleven are full handoff plans written for an executor with zero context; idea 10 is a design-spike
+      brief, because its architecture question is the deliverable. Every one ends with a copy-ready kickoff prompt.
+    </p>
+
+    <div class="files">
+
+      <div class="file">
+        <div class="file-head"><span class="idea-n">01</span><span class="file-path">ideas/001-keep-and-search-page-text.md</span><span class="badge advance">Handoff plan</span></div>
+        <p class="file-sum">Persist the readable text <code>extract.ts</code> already produces, add it to the FTS5 index so body-text search works, and use it as the embedding input instead of title-plus-URL. Includes the contentless-FTS migration trap and an explicit no-new-dependency boundary.</p>
+        <details class="kickoff"><summary>Kickoff prompt</summary><pre class="prompt">Read C:\dev\chrome-history\ideas\001-keep-and-search-page-text.md in full before
+doing anything. It is a self-contained implementation plan: follow the executor
+instructions at the top, run the drift check first, execute the steps in order
+verifying each before moving on, and stop at any STOP condition. Scope: persist
+the readable page text that src/server/lib/extract.ts already produces, add it
+to the FTS5 index so body-text search works, and use it as the embedding input
+instead of title+URL. Do not add any dependency, and do not capture text during
+liveness checks. Skip step 8 unless plan 012 has already landed. Work on a
+branch; when done, report against the Done criteria checklist.</pre></details>
+      </div>
+
+      <div class="file">
+        <div class="file-head"><span class="idea-n">02</span><span class="file-path">ideas/002-threadcrumb-capture-context.md</span><span class="badge advance">Handoff plan</span></div>
+        <p class="file-sum">Join liveness verdict and dominant transition type into the ThreadCrumb capture context, so a forwarded link can be triaged on the receiving end. Closes with five design questions covering the rest of &ldquo;better integration&rdquo;.</p>
+        <details class="kickoff"><summary>Kickoff prompt</summary><pre class="prompt">Read C:\dev\chrome-history\ideas\002-threadcrumb-capture-context.md in full
+before doing anything. It is a self-contained implementation plan: follow the
+executor instructions at the top, run the drift check first, execute the steps
+in order verifying each before moving on, and stop at any STOP condition. Scope:
+add liveness verdict and dominant transition type to the ThreadCrumb capture
+context in src/server/routes/threadcrumb.ts, so a forwarded history link carries
+enough context for triage on the receiving end. Do not change the privacy gate,
+the transport, or the ThreadCrumb request contract, and never log the token.
+Work on a branch; when done, report against the Done criteria checklist.</pre></details>
+      </div>
+
+      <div class="file">
+        <div class="file-head"><span class="idea-n">03</span><span class="file-path">ideas/003-open-into-the-right-profile.md</span><span class="badge advance">Handoff plan</span></div>
+        <p class="file-sum">Launch a URL into the Chromium profile it came from, derived from the visit's source label, instead of handing it to the OS default browser. Carries a hard rule preserving the argv-isolation property that is the current injection defence.</p>
+        <details class="kickoff"><summary>Kickoff prompt</summary><pre class="prompt">Read C:\dev\chrome-history\ideas\003-open-into-the-right-profile.md in full
+before doing anything. It is a self-contained implementation plan: follow the
+executor instructions at the top, run the drift check first, execute the steps
+in order verifying each before moving on, and stop at any STOP condition. Scope:
+make POST /api/open launch a URL in a specific Chromium-family browser profile
+(derived from the visit's source label like "chrome:Profile 2") instead of always
+handing it to the OS default browser, falling back to current behavior whenever
+the profile cannot be resolved. Every Bun.spawn call must keep passing an
+argument array, never a shell string. Work on a branch; when done, report against
+the Done criteria checklist.</pre></details>
+      </div>
+
+      <div class="file">
+        <div class="file-head"><span class="idea-n">04</span><span class="file-path">ideas/004-egress-audit-log.md</span><span class="badge advance">Handoff plan</span></div>
+        <p class="file-sum">A read-only Settings panel built from enrichment rows the app already writes, showing which external hosts were contacted by which path and what the privacy gate skipped. Notes that a summary contacts <em>two</em> parties, and that ThreadCrumb sends currently leave no trace at all.</p>
+        <details class="kickoff"><summary>Kickoff prompt</summary><pre class="prompt">Read C:\dev\chrome-history\ideas\004-egress-audit-log.md in full before doing
+anything. It is a self-contained implementation plan: follow the executor
+instructions at the top, run the drift check first, execute the steps in order
+verifying each before moving on, and stop at any STOP condition. Scope: build a
+read-only "what left my machine" panel in Settings from the enrichments rows the
+app already writes — showing which external hosts were contacted via which path
+(liveness, summary, embedding, threadcrumb, wayback), when, and what the privacy
+gate skipped. Record ThreadCrumb sends, which currently leave no trace. Never
+store or emit any token or API key. Do not add an append-only table, and do not
+add logging into jobs.ts, liveness.ts or the AI routes — the data is already
+there. Work on a branch; when done, report against the Done criteria checklist.</pre></details>
+      </div>
+
+      <div class="file">
+        <div class="file-head"><span class="idea-n">05</span><span class="file-path">ideas/005-bookmarks-as-a-source.md</span><span class="badge advance">Handoff plan</span></div>
+        <p class="file-sum">A <code>bookmarks</code> table, an optional <code>readBookmarks()</code> on the source interface, and a Firefox implementation reading <code>moz_bookmarks</code> from the database the adapter already copies. Firefox only &mdash; Chromium keeps bookmarks in a separate JSON file and is explicitly phase two.</p>
+        <details class="kickoff"><summary>Kickoff prompt</summary><pre class="prompt">Read C:\dev\chrome-history\ideas\005-bookmarks-as-a-source.md in full before
+doing anything. It is a self-contained implementation plan: follow the executor
+instructions at the top, run the drift check first, execute the steps in order
+verifying each before moving on, and stop at any STOP condition. Scope: add
+bookmarks as a first-class entity — a new `bookmarks` table, an optional
+readBookmarks() method on the HistorySource interface, a Firefox implementation
+reading moz_bookmarks from the places.sqlite copy the adapter already opens, a
+loader, and read-only routes including a dead-bookmarks view. Firefox only;
+Chromium bookmarks live in a separate JSON file and are explicitly out of scope
+for this plan. Never write to any browser's own data. Work on a branch; when
+done, report against the Done criteria checklist.</pre></details>
+      </div>
+
+      <div class="file">
+        <div class="file-head"><span class="idea-n">06</span><span class="file-path">ideas/006-navigation-tree-for-saved-windows.md</span><span class="badge advance">Handoff plan</span></div>
+        <p class="file-sum">Use the <code>referrer</code> and <code>http_status</code> columns &mdash; written at ingest, never read &mdash; to render each saved window as an indented parent/child tree with dead entries marked. Step 1 is a discovery query that can legitimately kill the feature before any code is written.</p>
+        <details class="kickoff"><summary>Kickoff prompt</summary><pre class="prompt">Read C:\dev\chrome-history\ideas\006-navigation-tree-for-saved-windows.md in full
+before doing anything. It is a self-contained implementation plan: follow the
+executor instructions at the top, run the drift check first, execute the steps in
+order verifying each before moving on, and stop at any STOP condition. Scope: use
+the tab_navigations.referrer and http_status columns — already written at ingest
+and never read — to render each saved Takeout window as an indented parent/child
+navigation tree with dead entries marked, instead of a flat list. Step 1 is a
+discovery query that decides whether the feature is viable at all; do it first
+and stop if there are no referrers. No schema changes, no ingest changes, no new
+dependencies. Work on a branch; when done, report against the Done criteria
+checklist.</pre></details>
+      </div>
+
+      <div class="file">
+        <div class="file-head"><span class="idea-n">07</span><span class="file-path">ideas/007-close-hidden-host-liveness-gap.md</span><span class="badge advance">Handoff plan</span></div>
+        <p class="file-sum">Gate hidden hosts at the enqueue boundary and in the three batch scopes, then reconcile the README and security policy so both describe the same guarantee. <strong>Opens with a step 0 that is the maintainer's decision</strong> &mdash; tighten the code, or narrow the promise.</p>
+        <details class="kickoff"><summary>Kickoff prompt</summary><pre class="prompt">Read C:\dev\chrome-history\ideas\007-close-hidden-host-liveness-gap.md in full
+before doing anything. It is a self-contained implementation plan: follow the
+executor instructions at the top, run the drift check first, execute the steps in
+order verifying each before moving on, and stop at any STOP condition. Scope:
+hosts the user marked "hide entirely" are currently still contacted by liveness
+checks, contradicting README.md:222 — gate them at enqueueUrlIds in
+src/server/lib/jobs.ts and in the three scope queries in
+src/server/routes/enrich.ts, then reconcile README.md and SECURITY.md so both
+describe the same guarantee. STEP 0 IS A DECISION FOR THE MAINTAINER (tighten the
+code vs. narrow the README) — confirm it before writing code. Do not change
+src/server/lib/rules.ts. Work on a branch; when done, report against the Done
+criteria checklist.</pre></details>
+      </div>
+
+      <div class="file">
+        <div class="file-head"><span class="idea-n">08</span><span class="file-path">ideas/008-export-from-every-view.md</span><span class="badge advance">Handoff plan</span></div>
+        <p class="file-sum">CSV, JSON and Markdown export for the URL list, research sessions, topics and the graveyard &mdash; reusing the existing filter builder unchanged so exports inherit the same privacy filtering the views apply. Includes spreadsheet-formula-injection neutralization, because page titles come from arbitrary websites.</p>
+        <details class="kickoff"><summary>Kickoff prompt</summary><pre class="prompt">Read C:\dev\chrome-history\ideas\008-export-from-every-view.md in full before
+doing anything. It is a self-contained implementation plan: follow the executor
+instructions at the top, run the drift check first, execute the steps in order
+verifying each before moving on, and stop at any STOP condition. Scope: add
+CSV/JSON/Markdown export for the URL list, Research Sessions, Interest Map topics
+and the dead-link Graveyard — reusing parseFilters/buildWhere from
+src/server/lib/query.ts unchanged so exports inherit the same is_hidden=0 privacy
+filtering the views already apply. Write your own CSV serializer with RFC 4180
+quoting and spreadsheet-formula-injection neutralization; add no dependency. Step
+4 verifies that a hidden domain appears in no export — stop if it does. Work on a
+branch; when done, report against the Done criteria checklist.</pre></details>
+      </div>
+
+      <div class="file">
+        <div class="file-head"><span class="idea-n">09</span><span class="file-path">ideas/009-takeout-import-from-the-ui.md</span><span class="badge advance">Handoff plan</span></div>
+        <p class="file-sum">Detect <code>./History.json</code>, accept a path in the import route, and import Takeout from the Import tab. Flags the most likely way to ship this broken: the route loads visits but never calls <code>loadSessions</code>, and sessions are the thing only Takeout provides.</p>
+        <details class="kickoff"><summary>Kickoff prompt</summary><pre class="prompt">Read C:\dev\chrome-history\ideas\009-takeout-import-from-the-ui.md in full before
+doing anything. It is a self-contained implementation plan: follow the executor
+instructions at the top, run the drift check first, execute the steps in order
+verifying each before moving on, and stop at any STOP condition. Scope: let a
+Google Takeout History.json be imported from the app's Import tab instead of only
+from the terminal — detect ./History.json, accept a takeoutPath in
+POST /api/import/run, and make sure saved tab sessions are loaded too (not just
+visits). Do not add a file-upload path and do not refactor the ingest CLI. Work
+on a branch; when done, report against the Done criteria checklist.</pre></details>
+      </div>
+
+      <div class="file">
+        <div class="file-head"><span class="idea-n">10</span><span class="file-path">ideas/010-act-on-open-tabs.md</span><span class="badge validate">Design spike</span></div>
+        <p class="file-sum">A one-day spike answering seven open questions about enumerating and acting on live tabs across profiles &mdash; extension versus DevTools Protocol, install cost, and the security delta. Its decision criteria include a legitimate &ldquo;drop it&rdquo; outcome.</p>
+        <details class="kickoff"><summary>Kickoff prompt</summary><pre class="prompt">Read C:\dev\chrome-history\ideas\010-act-on-open-tabs.md in full before doing
+anything. It is a design-spike brief: run the spike steps in order, answer the
+open questions, and report against its decision criteria. Scope: determine
+whether this app can enumerate and act on currently-open Chrome tabs across
+multiple profiles, and at what install and security cost — comparing the Chrome
+DevTools Protocol against a browser extension. Do not build beyond the spike;
+prototype work happens on a branch and nothing merges. The deliverable is a
+recommendation, not an implementation.</pre></details>
+      </div>
+
+      <div class="file">
+        <div class="file-head"><span class="idea-n">11</span><span class="file-path">ideas/011-finish-the-half-wired-features.md</span><span class="badge advance">Handoff plan</span></div>
+        <p class="file-sum">Three independent completions: render the visit timeline, read stored summaries back so none is paid for twice, and warn when derived views were built before the last import. Explicitly forbids auto-rebuilding, which would spend money without asking.</p>
+        <details class="kickoff"><summary>Kickoff prompt</summary><pre class="prompt">Read C:\dev\chrome-history\ideas\011-finish-the-half-wired-features.md in full
+before doing anything. It is a self-contained implementation plan: follow the
+executor instructions at the top, run the drift check first, execute the steps in
+order verifying each before moving on, and stop at any STOP condition. Scope:
+three independent completions of already-built-but-unwired features — (A) render
+the per-URL visit timeline from the existing GET /api/urls/:id/visits endpoint,
+(B) read stored AI summaries back via the existing GET /api/ai/summary endpoint so
+a summary is never paid for twice, and (C) show a "built before your last import"
+banner on Research Sessions and the Interest Map. Do NOT auto-rebuild anything
+after an import, and do not add a schema migration or a frontend test framework.
+The three parts are independent — if one proves larger than expected, ship the
+others and report. Work on a branch; when done, report against the Done criteria
+checklist.</pre></details>
+      </div>
+
+      <div class="file">
+        <div class="file-head"><span class="idea-n">12</span><span class="file-path">ideas/012-generalize-enrichment-queue.md</span><span class="badge advance">Handoff plan</span></div>
+        <p class="file-sum">Parameterize the job queue by kind and route embedding through it, so a full-history embed becomes a durable background job instead of ~300 sequential provider calls inside one request against a 60-second timeout. Unblocks idea 1.</p>
+        <details class="kickoff"><summary>Kickoff prompt</summary><pre class="prompt">Read C:\dev\chrome-history\ideas\012-generalize-enrichment-queue.md in full
+before doing anything. It is a self-contained implementation plan: follow the
+executor instructions at the top, run the drift check first, execute the steps
+in order verifying each before moving on, and stop at any STOP condition. Scope:
+parameterize the enrichment job queue in src/server/lib/jobs.ts by job kind and
+route the embedding endpoint through it, so full-history embedding becomes a
+durable background job instead of a synchronous request that can time out. Work
+on a branch; when done, report against the Done criteria checklist.</pre></details>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    <span>Generated by /ideate &mdash; deep mode &mdash; stamped at a33971d</span>
+    <span>The markdown in ideas/ is the source of truth; this page mirrors it.</span>
+  </footer>
+
+</div>

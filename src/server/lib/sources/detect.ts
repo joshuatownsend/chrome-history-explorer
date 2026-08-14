@@ -17,14 +17,19 @@ const HOME = homedir();
 const LOCALAPPDATA = process.env.LOCALAPPDATA ?? join(HOME, "AppData", "Local");
 const APPDATA = process.env.APPDATA ?? join(HOME, "AppData", "Roaming");
 
-interface ChromiumDef {
+export interface ChromiumDef {
   browser: string;
   slug: string; // label prefix
   userDataDir: string;
 }
 
-/** Chromium-family "User Data" directories per platform. */
-function chromiumRoots(): ChromiumDef[] {
+/**
+ * Chromium-family "User Data" directories per platform.
+ *
+ * Exported so lib/browsers.ts can confirm a profile directory still exists before
+ * launching into it, without keeping a second copy of these paths.
+ */
+export function chromiumRoots(): ChromiumDef[] {
   if (process.platform === "win32") {
     return [
       { browser: "Chrome", slug: "chrome", userDataDir: join(LOCALAPPDATA, "Google", "Chrome", "User Data") },
