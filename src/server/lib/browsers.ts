@@ -12,6 +12,7 @@
  */
 import { existsSync } from "node:fs";
 import { delimiter, join } from "node:path";
+import { chromiumRoots } from "./sources/detect.ts";
 
 export interface LaunchTarget {
   /** Absolute path to the browser executable. */
@@ -138,7 +139,7 @@ function whichInPath(names: string[]): string | null {
  * characters but still allows spaces and colons, which real Chromium profile
  * directory names may contain ("Guest Profile").
  */
-const PROFILE_LABEL = /^[a-z-]{1,20}:[^\\/\x00-\x1f]{1,64}$/;
+const PROFILE_LABEL = /^[A-Za-z-]{1,20}:[^\\/\x00-\x1f]{1,64}$/;
 
 /**
  * Is this a syntactically acceptable profile label? Sanity-checks values before
@@ -207,8 +208,16 @@ export function resolveLaunchTarget(sourceLabel: string): LaunchTarget | null {
       : process.platform === "darwin"
         ? macCandidates(slug).find((p) => p && existsSync(p))
         : whichInPath(linuxNames(slug));
+  if (!exe) return null;
 
-  return exe ? { exe, profileDir: parts.profileDir } : null;
+  // An installed browser is not enough: the profile directory must still exist.
+  // A stale label (profile since deleted, or from a different installation) would
+  // otherwise launch Chromium with an unknown --profile-directory, which creates a
+  // fresh blank profile rather than falling back to the default browser as promised.
+  const root = chromiumRoots().find((d) => d.slug === slug);
+  if (!root || !existsSync(join(root.userDataDir, parts.profileDir))) return null;
+
+  return { exe, profileDir: parts.profileDir };
 }
 
 /**

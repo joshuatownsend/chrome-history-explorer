@@ -65,6 +65,14 @@ describe("resolveLaunchTarget — cases that must be null on every machine", () 
     expect(resolveLaunchTarget("chrome-canary-typo:Default")).toBeNull();
   });
 
+  test("a syntactically valid but nonexistent profile falls back", () => {
+    // An installed executable is not sufficient — a stale label whose profile
+    // directory is gone must fall back, not launch Chromium into a blank new
+    // profile. Null on every machine: either Chrome is absent, or the profile is.
+    expect(resolveLaunchTarget("chrome:NoSuchProfile9187345")).toBeNull();
+    expect(resolveLaunchTarget("edge:NoSuchProfile9187345")).toBeNull();
+  });
+
   test("malformed labels fall back rather than throwing", () => {
     expect(resolveLaunchTarget("")).toBeNull();
     expect(resolveLaunchTarget("::::")).toBeNull();
@@ -151,6 +159,13 @@ describe("isProfileLabel", () => {
     expect(isProfileLabel("../../etc/passwd")).toBe(false);
     expect(isProfileLabel(`chrome:${"a".repeat(300)}`)).toBe(false);
     expect(isProfileLabel("chrome:Default\nchrome:Other")).toBe(false);
+  });
+
+  test("accepts an uppercase slug, matching parseSourceLabel's contract", () => {
+    // parseSourceLabel lowercases the slug, so the validator must not reject what
+    // the parser would happily normalise — resolveLaunchTarget gates on this.
+    expect(isProfileLabel("CHROME:Default")).toBe(true);
+    expect(isProfileLabel("Chrome:Default")).toBe(true);
   });
 
   test("bounds the slug as well as the profile", () => {
