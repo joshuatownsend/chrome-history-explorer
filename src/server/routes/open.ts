@@ -37,7 +37,7 @@ function sourcesQuery(): Statement<{ source: string }, [string]> {
        FROM visits v JOIN urls u ON u.id = v.url_id
       WHERE u.url = ?
       GROUP BY v.source
-      ORDER BY COUNT(*) DESC`,
+      ORDER BY COUNT(*) DESC, MAX(v.time_ms) DESC, v.source ASC`,
   );
   return sourcesForUrl;
 }
@@ -51,6 +51,10 @@ function sourcesQuery(): Statement<{ source: string }, [string]> {
  * single most frequent source would hand "takeout" back for almost every URL in a
  * merged database (a Takeout export spans a year; local Chrome expires at ~90
  * days), losing the Chrome profile that is sitting right behind it.
+ *
+ * Ranking is fully deterministic — visit count, then most recent visit, then name.
+ * Without the tie-breakers an equal-count tie is resolved by whatever SQLite
+ * happens to return first, which can reopen a client URL in a personal profile.
  *
  * Returns undefined (→ OS default browser) when nothing launchable is on record.
  *
